@@ -5,6 +5,13 @@ import (
 	"os"
 )
 
+const (
+	LEFT_PAREN  = "LEFT_PAREN"
+	RIGHT_PAREN = "RIGHT_PAREN"
+	LEFT_BRACE  = "LEFT_BRACE"
+	RIGHT_BRACE = "RIGHT_BRACE"
+)
+
 type Token struct {
 	TokenType string
 	lexeme    string
@@ -64,9 +71,13 @@ func addToken(ch string) Token {
 
 	switch ch {
 	case "(":
-		token.setToken("LEFT_PAREN", "(")
+		token.setToken(LEFT_PAREN, ch)
 	case ")":
-		token.setToken("RIGHT_PAREN", ")")
+		token.setToken(RIGHT_PAREN, ch)
+	case "{":
+		token.setToken(LEFT_BRACE, ch)
+	case "}":
+		token.setToken(RIGHT_BRACE, ch)
 	default:
 		fmt.Println("Unknown char : ", ch)
 	}
