@@ -10,6 +10,12 @@ const (
 	RIGHT_PAREN = "RIGHT_PAREN"
 	LEFT_BRACE  = "LEFT_BRACE"
 	RIGHT_BRACE = "RIGHT_BRACE"
+	STAR        = "STAR"
+	DOT         = "DOT"
+	COMMA       = "COMMA"
+	PLUS        = "PLUS"
+	MINUS       = "MINUS"
+	SEMICOLON   = "SEMICOLON"
 )
 
 type Token struct {
@@ -78,8 +84,20 @@ func addToken(ch string) Token {
 		token.setToken(LEFT_BRACE, ch)
 	case "}":
 		token.setToken(RIGHT_BRACE, ch)
+	case ",":
+		token.setToken(COMMA, ch)
+	case ".":
+		token.setToken(DOT, ch)
+	case "*":
+		token.setToken(STAR, ch)
+	case "+":
+		token.setToken(PLUS, ch)
+	case "-":
+		token.setToken(MINUS, ch)
+	case ";":
+		token.setToken(SEMICOLON, ch)
 	default:
-		fmt.Println("Unknown char : ", ch)
+		fmt.Fprintf(os.Stderr, "Unknown char: %s\n", ch)
 	}
 
 	return token
