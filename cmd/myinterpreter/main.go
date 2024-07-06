@@ -5,6 +5,22 @@ import (
 	"os"
 )
 
+type Token struct {
+	TokenType string
+	lexeme    string
+	literal   struct{}
+}
+
+func (token *Token) setToken(tokenType string, text string) {
+	token.TokenType = tokenType
+	token.lexeme = text
+	token.literal = struct{}{}
+}
+
+func (token *Token) printToken() {
+	fmt.Printf("%s %s null\n", token.TokenType, token.lexeme)
+}
+
 func main() {
 	if len(os.Args) < 3 {
 		fmt.Fprintln(os.Stderr, "Usage: ./your_program.sh tokenize <filename>")
@@ -25,9 +41,35 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(fileContents) > 0 {
-		panic("Scanner not implemented")
-	} else {
-		fmt.Println("EOF  null")
+	tokenizeFile(fileContents)
+}
+
+func tokenizeFile(fileContents []byte) {
+	fileContentString := string(fileContents)
+
+	tokens := []Token{}
+	for i := 0; i < len(fileContentString); i++ {
+		newToken := addToken(string(fileContentString[i]))
+		tokens = append(tokens, newToken)
 	}
+
+	for _, token := range tokens {
+		token.printToken()
+	}
+	fmt.Println("EOF  null")
+}
+
+func addToken(ch string) Token {
+	token := Token{}
+
+	switch ch {
+	case "(":
+		token.setToken("LEFT_PAREN", "(")
+	case ")":
+		token.setToken("RIGHT_PAREN", ")")
+	default:
+		fmt.Println("Unknown char : ", ch)
+	}
+
+	return token
 }
