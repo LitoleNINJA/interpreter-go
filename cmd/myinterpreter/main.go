@@ -67,7 +67,9 @@ func tokenizeFile(fileContents []byte) {
 	}
 
 	for _, token := range tokens {
-		token.printToken()
+		if token != (Token{}) {
+			token.printToken()
+		}
 	}
 	fmt.Println("EOF  null")
 }
@@ -97,7 +99,8 @@ func addToken(ch string) Token {
 	case ";":
 		token.setToken(SEMICOLON, ch)
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown char: %s\n", ch)
+		fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", ch)
+		os.Exit(65)
 	}
 
 	return token
