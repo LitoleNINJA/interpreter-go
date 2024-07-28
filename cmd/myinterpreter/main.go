@@ -16,6 +16,8 @@ const (
 	PLUS        = "PLUS"
 	MINUS       = "MINUS"
 	SEMICOLON   = "SEMICOLON"
+	EQUAL       = "EQUAL"
+	EQUAL_EQUAL = "EQUAL_EQUAL"
 )
 
 type Token struct {
@@ -35,6 +37,7 @@ func (token *Token) printToken() {
 }
 
 var exitCode = 0
+var fileContentString string
 
 func main() {
 	if len(os.Args) < 3 {
@@ -61,11 +64,11 @@ func main() {
 }
 
 func tokenizeFile(fileContents []byte) {
-	fileContentString := string(fileContents)
+	fileContentString = string(fileContents)
 
 	tokens := []Token{}
 	for i := 0; i < len(fileContentString); i++ {
-		newToken := addToken(string(fileContentString[i]))
+		newToken := addToken(string(fileContentString[i]), &i)
 		tokens = append(tokens, newToken)
 	}
 
@@ -77,7 +80,7 @@ func tokenizeFile(fileContents []byte) {
 	fmt.Println("EOF  null")
 }
 
-func addToken(ch string) Token {
+func addToken(ch string, index *int) Token {
 	token := Token{}
 
 	switch ch {
@@ -101,10 +104,24 @@ func addToken(ch string) Token {
 		token.setToken(MINUS, ch)
 	case ";":
 		token.setToken(SEMICOLON, ch)
+	case "=":
+		if nextToken(*index) == "=" {
+			token.setToken(EQUAL_EQUAL, "==")
+			*index++
+		} else {
+			token.setToken(EQUAL, ch)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", ch)
 		exitCode = 65
 	}
 
 	return token
+}
+
+func nextToken(index int) string {
+	if index < len(fileContentString)-1 {
+		return string(fileContentString[index+1])
+	}
+	return ""
 }
