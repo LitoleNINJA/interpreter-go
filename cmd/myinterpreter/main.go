@@ -34,6 +34,8 @@ func (token *Token) printToken() {
 	fmt.Printf("%s %s null\n", token.TokenType, token.lexeme)
 }
 
+var exitCode = 0
+
 func main() {
 	if len(os.Args) < 3 {
 		fmt.Fprintln(os.Stderr, "Usage: ./your_program.sh tokenize <filename>")
@@ -55,6 +57,7 @@ func main() {
 	}
 
 	tokenizeFile(fileContents)
+	os.Exit(exitCode)
 }
 
 func tokenizeFile(fileContents []byte) {
@@ -100,7 +103,7 @@ func addToken(ch string) Token {
 		token.setToken(SEMICOLON, ch)
 	default:
 		fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", ch)
-		os.Exit(65)
+		exitCode = 65
 	}
 
 	return token
