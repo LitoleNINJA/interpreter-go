@@ -45,6 +45,7 @@ func (token *Token) printToken() {
 
 var exitCode = 0
 var fileContentString string
+var line = 1
 
 func main() {
 	if len(os.Args) < 3 {
@@ -143,12 +144,17 @@ func addToken(ch string, index *int) Token {
 		if nextToken(*index) != "/" {
 			token.setToken(SLASH, ch)
 		} else {
-			*index = len(fileContentString)
+			for *index < len(fileContentString) && fileContentString[*index] != '\n' {
+				*index++
+			}
+			line++
 		}
-	case " ", "\t", "\n":
+	case " ", "\t":
 		break
+	case "\n":
+		line++
 	default:
-		fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", ch)
+		fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", line, ch)
 		exitCode = 65
 	}
 
