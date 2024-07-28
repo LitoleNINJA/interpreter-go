@@ -24,6 +24,7 @@ const (
 	LESS_EQUAL    = "LESS_EQUAL"
 	GREATER       = "GREATER"
 	GREATER_EQUAL = "GREATER_EQUAL"
+	SLASH         = "SLASH"
 )
 
 type Token struct {
@@ -137,6 +138,12 @@ func addToken(ch string, index *int) Token {
 			*index++
 		} else {
 			token.setToken(GREATER, ch)
+		}
+	case "/":
+		if nextToken(*index) != "/" {
+			token.setToken(SLASH, ch)
+		} else {
+			*index = len(fileContentString)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", ch)
