@@ -6,20 +6,24 @@ import (
 )
 
 const (
-	LEFT_PAREN  = "LEFT_PAREN"
-	RIGHT_PAREN = "RIGHT_PAREN"
-	LEFT_BRACE  = "LEFT_BRACE"
-	RIGHT_BRACE = "RIGHT_BRACE"
-	STAR        = "STAR"
-	DOT         = "DOT"
-	COMMA       = "COMMA"
-	PLUS        = "PLUS"
-	MINUS       = "MINUS"
-	SEMICOLON   = "SEMICOLON"
-	EQUAL       = "EQUAL"
-	EQUAL_EQUAL = "EQUAL_EQUAL"
-	BANG        = "BANG"
-	BANG_EQUAL  = "BANG_EQUAL"
+	LEFT_PAREN    = "LEFT_PAREN"
+	RIGHT_PAREN   = "RIGHT_PAREN"
+	LEFT_BRACE    = "LEFT_BRACE"
+	RIGHT_BRACE   = "RIGHT_BRACE"
+	STAR          = "STAR"
+	DOT           = "DOT"
+	COMMA         = "COMMA"
+	PLUS          = "PLUS"
+	MINUS         = "MINUS"
+	SEMICOLON     = "SEMICOLON"
+	EQUAL         = "EQUAL"
+	EQUAL_EQUAL   = "EQUAL_EQUAL"
+	BANG          = "BANG"
+	BANG_EQUAL    = "BANG_EQUAL"
+	LESS          = "LESS"
+	LESS_EQUAL    = "LESS_EQUAL"
+	GREATER       = "GREATER"
+	GREATER_EQUAL = "GREATER_EQUAL"
 )
 
 type Token struct {
@@ -119,6 +123,20 @@ func addToken(ch string, index *int) Token {
 			*index++
 		} else {
 			token.setToken(BANG, ch)
+		}
+	case "<":
+		if nextToken(*index) == "=" {
+			token.setToken(LESS_EQUAL, "<=")
+			*index++
+		} else {
+			token.setToken(LESS, ch)
+		}
+	case ">":
+		if nextToken(*index) == "=" {
+			token.setToken(GREATER_EQUAL, ">=")
+			*index++
+		} else {
+			token.setToken(GREATER, ch)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", ch)
