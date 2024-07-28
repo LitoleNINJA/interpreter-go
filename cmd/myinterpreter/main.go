@@ -145,6 +145,8 @@ func addToken(ch string, index *int) Token {
 		} else {
 			*index = len(fileContentString)
 		}
+	case " ", "\t", "\n":
+		break
 	default:
 		fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", ch)
 		exitCode = 65
