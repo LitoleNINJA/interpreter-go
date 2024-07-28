@@ -18,6 +18,8 @@ const (
 	SEMICOLON   = "SEMICOLON"
 	EQUAL       = "EQUAL"
 	EQUAL_EQUAL = "EQUAL_EQUAL"
+	BANG        = "BANG"
+	BANG_EQUAL  = "BANG_EQUAL"
 )
 
 type Token struct {
@@ -110,6 +112,13 @@ func addToken(ch string, index *int) Token {
 			*index++
 		} else {
 			token.setToken(EQUAL, ch)
+		}
+	case "!":
+		if nextToken(*index) == "=" {
+			token.setToken(BANG_EQUAL, "!=")
+			*index++
+		} else {
+			token.setToken(BANG, ch)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "[line 1] Error: Unexpected character: %s\n", ch)
