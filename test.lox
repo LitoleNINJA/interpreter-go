@@ -1,7 +1,1 @@
-()  #   {}
-@
-$
-+++
-// Let's Go!
-+++
-#
+("foo"+"baz") != "other_string"

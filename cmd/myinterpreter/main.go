@@ -25,22 +25,27 @@ const (
 	GREATER       = "GREATER"
 	GREATER_EQUAL = "GREATER_EQUAL"
 	SLASH         = "SLASH"
+	STRING        = "STRING"
 )
 
 type Token struct {
 	TokenType string
 	lexeme    string
-	literal   struct{}
+	literal   string
 }
 
-func (token *Token) setToken(tokenType string, text string) {
-	token.TokenType = tokenType
-	token.lexeme = text
-	token.literal = struct{}{}
+func (token *Token) setToken(args ...string) {
+	token.TokenType = args[0]
+	token.lexeme = args[1]
+	if len(args) > 2 {
+		token.literal = args[2]
+	} else {
+		token.literal = "null"
+	}
 }
 
 func (token *Token) printToken() {
-	fmt.Printf("%s %s null\n", token.TokenType, token.lexeme)
+	fmt.Printf("%s %s %s\n", token.TokenType, token.lexeme, token.literal)
 }
 
 var exitCode = 0
@@ -153,6 +158,15 @@ func addToken(ch string, index *int) Token {
 		break
 	case "\n":
 		line++
+	case `"`:
+		str := readString(index)
+		if str == "" {
+			fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.\n", line)
+			exitCode = 65
+			break
+		} else {
+			token.setToken(STRING, `"`+str+`"`, str)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", line, ch)
 		exitCode = 65
@@ -164,6 +178,20 @@ func addToken(ch string, index *int) Token {
 func nextToken(index int) string {
 	if index < len(fileContentString)-1 {
 		return string(fileContentString[index+1])
+	}
+	return ""
+}
+
+func readString(index *int) string {
+	str := ""
+	*index++
+	for *index < len(fileContentString) && fileContentString[*index] != '"' {
+		str += string(fileContentString[*index])
+		*index++
+	}
+
+	if *index < len(fileContentString) && fileContentString[*index] == '"' {
+		return str
 	}
 	return ""
 }
