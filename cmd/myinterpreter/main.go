@@ -29,7 +29,42 @@ const (
 	STRING        = "STRING"
 	NUMBER        = "NUMBER"
 	IDENTIFIER    = "IDENTIFIER"
+	AND           = "AND"
+	CLASS         = "CLASS"
+	ELSE          = "ELSE"
+	FALSE         = "FALSE"
+	FOR           = "FOR"
+	FUN           = "FUN"
+	IF            = "IF"
+	NIL           = "NIL"
+	OR            = "OR"
+	PRINT         = "PRINT"
+	RETURN        = "RETURN"
+	SUPER         = "SUPER"
+	THIS          = "THIS"
+	TRUE          = "TRUE"
+	VAR           = "VAR"
+	WHILE         = "WHILE"
 )
+
+var keywords = map[string]string{
+	"and":    AND,
+	"class":  CLASS,
+	"else":   ELSE,
+	"false":  FALSE,
+	"for":    FOR,
+	"fun":    FUN,
+	"if":     IF,
+	"nil":    NIL,
+	"or":     OR,
+	"print":  PRINT,
+	"return": RETURN,
+	"super":  SUPER,
+	"this":   THIS,
+	"true":   TRUE,
+	"var":    VAR,
+	"while":  WHILE,
+}
 
 type Token struct {
 	TokenType string
@@ -183,7 +218,11 @@ func addToken(ch string, index *int) Token {
 			*index--
 		} else if isIndentifierStart(ch) {
 			str := readIdentifier(index)
-			token.setToken(IDENTIFIER, str)
+			if _, isKeyword := keywords[str]; isKeyword {
+				token.setToken(keywords[str], str)
+			} else {
+				token.setToken(IDENTIFIER, str)
+			}
 			*index--
 		} else {
 			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", line, ch)
