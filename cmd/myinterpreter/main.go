@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 const (
@@ -27,6 +28,7 @@ const (
 	SLASH         = "SLASH"
 	STRING        = "STRING"
 	NUMBER        = "NUMBER"
+	IDENTIFIER    = "IDENTIFIER"
 )
 
 type Token struct {
@@ -171,11 +173,18 @@ func addToken(ch string, index *int) Token {
 	default:
 		if isStringDigit(ch) {
 			str, frac := readNumber(index)
-			if frac {
-				token.setToken(NUMBER, str, str)
+			if frac == "0" {
+				floatVal, _ := strconv.ParseFloat(str, 64)
+				intVal := int64(floatVal)
+				token.setToken(NUMBER, str, strconv.FormatInt(intVal, 10)+"."+frac)
 			} else {
-				token.setToken(NUMBER, str, str+".0")
+				token.setToken(NUMBER, str, str)
 			}
+			*index--
+		} else if isIndentifierStart(ch) {
+			str := readIdentifier(index)
+			token.setToken(IDENTIFIER, str)
+			*index--
 		} else {
 			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", line, ch)
 			exitCode = 65
@@ -206,9 +215,9 @@ func readString(index *int) string {
 	return ""
 }
 
-func readNumber(index *int) (string, bool) {
+func readNumber(index *int) (string, string) {
 	str := ""
-	var isFrac = false
+	frac := ""
 	for *index < len(fileContentString) && isStringDigit(string(fileContentString[*index])) {
 		str += string(fileContentString[*index])
 		*index++
@@ -217,15 +226,28 @@ func readNumber(index *int) (string, bool) {
 	if *index < len(fileContentString)-1 && fileContentString[*index] == '.' && isStringDigit(string(fileContentString[*index+1])) {
 		str += "."
 		*index++
-		isFrac = true
 		for *index < len(fileContentString) && isStringDigit(string(fileContentString[*index])) {
 			str += string(fileContentString[*index])
+			frac += string(fileContentString[*index])
 			*index++
 		}
 	}
 
-	*index--
-	return str, isFrac
+	if i, _ := strconv.Atoi(frac); i == 0 {
+		frac = "0"
+	}
+
+	return str, frac
+}
+
+func readIdentifier(index *int) string {
+	str := ""
+	for *index < len(fileContentString) && isAlphaNum(string(fileContentString[*index])) {
+		str += string(fileContentString[*index])
+		*index++
+	}
+
+	return str
 }
 
 func isStringDigit(s string) bool {
@@ -233,4 +255,12 @@ func isStringDigit(s string) bool {
 		return true
 	}
 	return false
+}
+
+func isIndentifierStart(s string) bool {
+	return (s >= "a" && s <= "z") || (s >= "A" && s <= "Z") || (s == "_")
+}
+
+func isAlphaNum(s string) bool {
+	return isIndentifierStart(s) || isStringDigit(s)
 }
