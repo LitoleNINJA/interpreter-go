@@ -26,6 +26,7 @@ const (
 	GREATER_EQUAL = "GREATER_EQUAL"
 	SLASH         = "SLASH"
 	STRING        = "STRING"
+	NUMBER        = "NUMBER"
 )
 
 type Token struct {
@@ -168,8 +169,17 @@ func addToken(ch string, index *int) Token {
 			token.setToken(STRING, `"`+str+`"`, str)
 		}
 	default:
-		fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", line, ch)
-		exitCode = 65
+		if isStringDigit(ch) {
+			str, frac := readNumber(index)
+			if frac {
+				token.setToken(NUMBER, str, str)
+			} else {
+				token.setToken(NUMBER, str, str+".0")
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", line, ch)
+			exitCode = 65
+		}
 	}
 
 	return token
@@ -194,4 +204,33 @@ func readString(index *int) string {
 		return str
 	}
 	return ""
+}
+
+func readNumber(index *int) (string, bool) {
+	str := ""
+	var isFrac = false
+	for *index < len(fileContentString) && isStringDigit(string(fileContentString[*index])) {
+		str += string(fileContentString[*index])
+		*index++
+	}
+
+	if *index < len(fileContentString)-1 && fileContentString[*index] == '.' && isStringDigit(string(fileContentString[*index+1])) {
+		str += "."
+		*index++
+		isFrac = true
+		for *index < len(fileContentString) && isStringDigit(string(fileContentString[*index])) {
+			str += string(fileContentString[*index])
+			*index++
+		}
+	}
+
+	*index--
+	return str, isFrac
+}
+
+func isStringDigit(s string) bool {
+	if len(s) == 1 && s >= "0" && s <= "9" {
+		return true
+	}
+	return false
 }
