@@ -18,7 +18,11 @@ type Expr struct {
 
 func (expr *Expr) print() {
 	if expr.left == nil && expr.right == nil {
-		fmt.Println(expr.operator.lexeme)
+		if expr.operator.TokenType == NUMBER {
+			fmt.Println(expr.operator.literal)
+		} else {
+			fmt.Println(expr.operator.lexeme)
+		}
 		return
 	}
 
