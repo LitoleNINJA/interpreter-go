@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -228,7 +229,7 @@ func addToken(ch string, index *int) Token {
 				intVal := int64(floatVal)
 				token.setToken(NUMBER, str, strconv.FormatInt(intVal, 10)+"."+frac)
 			} else {
-				token.setToken(NUMBER, str, str)
+				token.setToken(NUMBER, str, strings.Trim(str, "0"))
 			}
 			*index--
 		} else if isIndentifierStart(ch) {
