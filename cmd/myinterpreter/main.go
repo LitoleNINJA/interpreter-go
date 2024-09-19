@@ -98,11 +98,6 @@ func main() {
 
 	command := os.Args[1]
 
-	if command != "tokenize" {
-		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
-		os.Exit(1)
-	}
-
 	filename := os.Args[2]
 	fileContents, err := os.ReadFile(filename)
 	if err != nil {
@@ -110,25 +105,45 @@ func main() {
 		os.Exit(1)
 	}
 
-	tokenizeFile(fileContents)
+	switch command {
+	case "tokenize":
+		tokens := tokenizeFile(fileContents)
+
+		for _, token := range tokens {
+			if token != (Token{}) {
+				token.printToken()
+			}
+		}
+
+		fmt.Println("EOF  null")
+	case "parse":
+		expr, err := parseFile(fileContents)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing file: %v\n", err)
+			os.Exit(1)
+		}
+
+		expr.print()
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
+		os.Exit(1)
+	}
+
 	os.Exit(exitCode)
 }
 
-func tokenizeFile(fileContents []byte) {
+func tokenizeFile(fileContents []byte) []Token {
 	fileContentString = string(fileContents)
 
 	tokens := []Token{}
 	for i := 0; i < len(fileContentString); i++ {
 		newToken := addToken(string(fileContentString[i]), &i)
-		tokens = append(tokens, newToken)
-	}
-
-	for _, token := range tokens {
-		if token != (Token{}) {
-			token.printToken()
+		if newToken != (Token{}) {
+			tokens = append(tokens, newToken)
 		}
 	}
-	fmt.Println("EOF  null")
+
+	return tokens
 }
 
 func addToken(ch string, index *int) Token {
