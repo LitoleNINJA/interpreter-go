@@ -18,7 +18,7 @@ type Unary struct {
 }
 
 func (u Unary) String() string {
-	return fmt.Sprintf("%s %s", u.operator, u.right)
+	return fmt.Sprintf("(%s %s)", u.operator.lexeme, u.right)
 }
 
 type Binary struct {
@@ -174,7 +174,6 @@ func parseFile(fileContent []byte) (Expr, error) {
 
 	// fmt.Println(parser.tokens)
 	expr := parser.parse()
-	// fmt.Println(expr)
 
 	return expr, nil
 }
