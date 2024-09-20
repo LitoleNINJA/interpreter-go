@@ -28,18 +28,7 @@ type Binary struct {
 }
 
 func (b Binary) String() string {
-	var operator string
-	switch b.operator.TokenType {
-	case STAR:
-		operator = "*"
-	case SLASH:
-		operator = "/"
-	case PLUS:
-		operator = "+"
-	case MINUS:
-		operator = "-"
-	}
-	return fmt.Sprintf("(%s %s %s)", operator, b.left, b.right)
+	return fmt.Sprintf("(%s %s %s)", b.operator.lexeme, b.left, b.right)
 }
 
 type Grouping struct {
@@ -60,7 +49,7 @@ func equality(parser *Parser) Expr {
 	for parser.match(BANG_EQUAL, EQUAL_EQUAL) {
 		operator := parser.previous()
 		right := comparison(parser)
-		return Binary{
+		expr = &Binary{
 			left:     expr,
 			operator: operator,
 			right:    right,
@@ -76,7 +65,7 @@ func comparison(parser *Parser) Expr {
 	for parser.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
 		operator := parser.previous()
 		right := term(parser)
-		return Binary{
+		expr = &Binary{
 			left:     expr,
 			operator: operator,
 			right:    right,
@@ -89,10 +78,10 @@ func comparison(parser *Parser) Expr {
 func term(parser *Parser) Expr {
 	expr := factor(parser)
 
-	for parser.match(PLUS, MINUS) {
+	for parser.match(MINUS, PLUS) {
 		operator := parser.previous()
 		right := factor(parser)
-		return Binary{
+		expr = &Binary{
 			left:     expr,
 			operator: operator,
 			right:    right,
@@ -105,10 +94,10 @@ func term(parser *Parser) Expr {
 func factor(parser *Parser) Expr {
 	expr := unary(parser)
 
-	for parser.match(SLASH, STAR) {
+	for parser.match(STAR, SLASH) {
 		operator := parser.previous()
 		right := unary(parser)
-		return Binary{
+		expr = &Binary{
 			left:     expr,
 			operator: operator,
 			right:    right,
