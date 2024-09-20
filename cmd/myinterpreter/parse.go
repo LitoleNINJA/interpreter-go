@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 type Expr interface{}
 
@@ -144,15 +147,14 @@ func primary(parser *Parser) Expr {
 	}
 
 	fmt.Println("Should not reach here !")
-	return Literal{}
+	return Grouping{}
 }
 
 func consume(parser *Parser, tokenType string, msg string) {
-	if parser.match(tokenType) {
-		parser.advance()
+	if !parser.match(tokenType) {
+		fmt.Errorf("ERROR : %s", msg)
+		os.Exit(65)
 	}
-
-	fmt.Errorf("ERROR : %s", msg)
 }
 
 func parseFile(fileContent []byte) (Expr, error) {
