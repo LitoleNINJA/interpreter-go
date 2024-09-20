@@ -33,9 +33,9 @@ func (parser *Parser) peek() Token {
 	return parser.tokens[parser.current]
 }
 
-func (parser *Parser) advance() Token {
+func (parser *Parser) advance() {
 	parser.current += 1
-	return parser.previous()
+	return
 }
 
 func (parser *Parser) previous() Token {

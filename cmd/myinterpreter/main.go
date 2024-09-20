@@ -124,7 +124,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		expr.print()
+		fmt.Println(expr)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)

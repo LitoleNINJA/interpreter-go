@@ -2,45 +2,52 @@ package main
 
 import "fmt"
 
-const (
-	LITERAL  = "literal"
-	UNARY    = "unary"
-	BINARY   = "binary"
-	GROUPING = "grouping"
-)
+type Expr interface{}
 
-type Expr struct {
-	left     *Expr
-	operator Token
-	right    *Expr
-	expType  string
+type Literal struct {
+	value string
 }
 
-func (expr *Expr) print() {
-	if expr.left == nil && expr.right == nil {
-		if expr.operator.TokenType == NUMBER || expr.operator.TokenType == STRING {
-			fmt.Println(expr.operator.literal)
-		} else {
-			fmt.Println(expr.operator.lexeme)
-		}
-		return
-	}
+func (l Literal) String() string {
+	return l.value
+}
 
-	fmt.Print("(")
-	fmt.Print(expr.operator.lexeme)
-	if expr.left.expType == LITERAL {
-		fmt.Print(" ", expr.left.operator.literal)
-	} else {
-		expr.left.print()
-	}
+type Unary struct {
+	operator Token
+	right    Expr
+}
 
-	if expr.right.expType == LITERAL {
-		fmt.Print(" ", expr.right.operator.literal)
-	} else {
-		expr.right.print()
-	}
+func (u Unary) String() string {
+	return fmt.Sprintf("%s %s", u.operator, u.right)
+}
 
-	fmt.Print(")\n")
+type Binary struct {
+	left     Expr
+	operator Token
+	right    Expr
+}
+
+func (b Binary) String() string {
+	var operator string
+	switch b.operator.TokenType {
+	case STAR:
+		operator = "*"
+	case SLASH:
+		operator = "/"
+	case PLUS:
+		operator = "+"
+	case MINUS:
+		operator = "-"
+	}
+	return fmt.Sprintf("(%s %s %s)", operator, b.left, b.right)
+}
+
+type Grouping struct {
+	expression Expr
+}
+
+func (g Grouping) String() string {
+	return fmt.Sprintf("(group %s)", g.expression)
 }
 
 func expression(parser *Parser) Expr {
@@ -53,10 +60,10 @@ func equality(parser *Parser) Expr {
 	for parser.match(BANG_EQUAL, EQUAL_EQUAL) {
 		operator := parser.previous()
 		right := comparison(parser)
-		return Expr{
-			left:     &expr,
+		return Binary{
+			left:     expr,
 			operator: operator,
-			right:    &right,
+			right:    right,
 		}
 	}
 
@@ -69,10 +76,10 @@ func comparison(parser *Parser) Expr {
 	for parser.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
 		operator := parser.previous()
 		right := term(parser)
-		return Expr{
-			left:     &expr,
+		return Binary{
+			left:     expr,
 			operator: operator,
-			right:    &right,
+			right:    right,
 		}
 	}
 
@@ -85,10 +92,10 @@ func term(parser *Parser) Expr {
 	for parser.match(PLUS, MINUS) {
 		operator := parser.previous()
 		right := factor(parser)
-		return Expr{
-			left:     &expr,
+		return Binary{
+			left:     expr,
 			operator: operator,
-			right:    &right,
+			right:    right,
 		}
 	}
 
@@ -101,10 +108,10 @@ func factor(parser *Parser) Expr {
 	for parser.match(SLASH, STAR) {
 		operator := parser.previous()
 		right := unary(parser)
-		return Expr{
-			left:     &expr,
+		return Binary{
+			left:     expr,
 			operator: operator,
-			right:    &right,
+			right:    right,
 		}
 	}
 
@@ -115,12 +122,10 @@ func unary(parser *Parser) Expr {
 	if parser.match(BANG, MINUS) {
 		operator := parser.previous()
 		right := unary(parser)
-		expr := Expr{
+		return Unary{
 			operator: operator,
-			right:    &right,
+			right:    right,
 		}
-
-		return expr
 	}
 
 	return primary(parser)
@@ -128,37 +133,29 @@ func unary(parser *Parser) Expr {
 
 func primary(parser *Parser) Expr {
 	if parser.match(FALSE) {
-		return Literal(Token{
-			TokenType: FALSE,
-			lexeme:    "false",
-		})
+		return Literal{
+			value: "false",
+		}
 	} else if parser.match(TRUE) {
-		return Literal(Token{
-			TokenType: TRUE,
-			lexeme:    "true",
-		})
+		return Literal{
+			value: "true",
+		}
 	} else if parser.match(NIL) {
-		return Literal(Token{
-			TokenType: NIL,
-			lexeme:    "nil",
-		})
+		return Literal{
+			value: "nil",
+		}
 	} else if parser.match(NUMBER, STRING) {
-		return Literal(parser.previous())
+		return Literal{value: parser.previous().literal}
 	} else if parser.match(LEFT_PAREN) {
 		expr := expression(parser)
 		consume(parser, RIGHT_PAREN, "Expect ')' after expression.")
-		return expr
+		return Grouping{
+			expression: expr,
+		}
 	}
 
 	fmt.Println("Should not reach here !")
-	return Expr{}
-}
-
-func Literal(token Token) Expr {
-	return Expr{
-		operator: token,
-		expType:  LITERAL,
-	}
+	return Literal{}
 }
 
 func consume(parser *Parser, tokenType string, msg string) {
@@ -175,7 +172,9 @@ func parseFile(fileContent []byte) (Expr, error) {
 		current: 0,
 	}
 
+	// fmt.Println(parser.tokens)
 	expr := parser.parse()
+	// fmt.Println(expr)
 
 	return expr, nil
 }
