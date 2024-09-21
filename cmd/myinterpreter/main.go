@@ -129,7 +129,7 @@ func main() {
 		val, err := evaluate(fileContents)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
-			os.Exit(65)
+			os.Exit(70)
 		}
 
 		fmt.Println(val)

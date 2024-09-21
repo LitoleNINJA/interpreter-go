@@ -7,7 +7,7 @@ import (
 
 type Expr interface {
 	String() string
-	Evaluate() Value
+	Evaluate() (Value, error)
 }
 
 type Literal struct {

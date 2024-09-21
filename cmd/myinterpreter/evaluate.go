@@ -8,60 +8,75 @@ import (
 
 type Value interface{}
 
-func (l *Literal) Evaluate() Value {
+func (l *Literal) Evaluate() (Value, error) {
 	if l.t != "number" {
-		return l.value
+		return l.value, nil
 	} else {
-		val, _ := strconv.ParseFloat(l.value, 64)
-		return val
+		val, err := strconv.ParseFloat(l.value, 64)
+		if err != nil {
+			return nil, err
+		}
+		return val, nil
 	}
 }
 
-func (u *Unary) Evaluate() Value {
-	val := u.right.Evaluate()
+func (u *Unary) Evaluate() (Value, error) {
+	val, err := u.right.Evaluate()
+	if err != nil {
+		return nil, err
+	}
 
 	switch u.operator.TokenType {
 	case MINUS:
-		val = -val.(float64)
+		if valFloat, ok := val.(float64); ok {
+			val = -valFloat
+		} else {
+			return nil, fmt.Errorf("Operand must be a number.\n[line 1]")
+		}
 	case BANG:
 		val = !isTruthy(val)
 	}
 
-	return val
+	return val, nil
 }
 
-func (b *Binary) Evaluate() Value {
-	leftVal := b.left.Evaluate()
-	rightVal := b.right.Evaluate()
+func (b *Binary) Evaluate() (Value, error) {
+	leftVal, err := b.left.Evaluate()
+	if err != nil {
+		return nil, err
+	}
+	rightVal, err := b.right.Evaluate()
+	if err != nil {
+		return nil, err
+	}
 
 	switch b.operator.TokenType {
 	case PLUS:
-		return add(leftVal, rightVal)
+		return add(leftVal, rightVal), nil
 	case MINUS:
-		return leftVal.(float64) - rightVal.(float64)
+		return leftVal.(float64) - rightVal.(float64), nil
 	case STAR:
-		return leftVal.(float64) * rightVal.(float64)
+		return leftVal.(float64) * rightVal.(float64), nil
 	case SLASH:
-		return leftVal.(float64) / rightVal.(float64)
+		return leftVal.(float64) / rightVal.(float64), nil
 	case GREATER:
-		return leftVal.(float64) > rightVal.(float64)
+		return leftVal.(float64) > rightVal.(float64), nil
 	case GREATER_EQUAL:
-		return leftVal.(float64) >= rightVal.(float64)
+		return leftVal.(float64) >= rightVal.(float64), nil
 	case LESS:
-		return leftVal.(float64) < rightVal.(float64)
+		return leftVal.(float64) < rightVal.(float64), nil
 	case LESS_EQUAL:
-		return leftVal.(float64) <= rightVal.(float64)
+		return leftVal.(float64) <= rightVal.(float64), nil
 	case EQUAL_EQUAL:
-		return checkEqual(leftVal, rightVal)
+		return checkEqual(leftVal, rightVal), nil
 	case BANG_EQUAL:
-		return !checkEqual(leftVal, rightVal)
+		return !checkEqual(leftVal, rightVal), nil
 	default:
-		fmt.Println("Unknown operator!")
-		return nil
+		return nil, fmt.Errorf("Unknown Operator !")
 	}
 }
 
-func (g *Grouping) Evaluate() Value {
+func (g *Grouping) Evaluate() (Value, error) {
 	return g.expression.Evaluate()
 }
 
@@ -71,7 +86,7 @@ func evaluate(fileContents []byte) (Value, error) {
 		return nil, err
 	}
 
-	return expr.Evaluate(), nil
+	return expr.Evaluate()
 }
 
 func isTruthy(val Value) bool {
