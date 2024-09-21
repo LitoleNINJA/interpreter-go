@@ -29,7 +29,22 @@ func (u *Unary) Evaluate() Value {
 }
 
 func (b *Binary) Evaluate() Value {
-	return b.operator.lexeme
+	leftVal := b.left.Evaluate()
+	rightVal := b.right.Evaluate()
+
+	switch b.operator.TokenType {
+	case PLUS:
+		return leftVal.(float64) + rightVal.(float64)
+	case MINUS:
+		return leftVal.(float64) - rightVal.(float64)
+	case STAR:
+		return leftVal.(float64) * rightVal.(float64)
+	case SLASH:
+		return leftVal.(float64) / rightVal.(float64)
+	default:
+		fmt.Println("Unknown operator!")
+		return nil
+	}
 }
 
 func (g *Grouping) Evaluate() Value {
