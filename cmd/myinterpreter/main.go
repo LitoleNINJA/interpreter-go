@@ -120,8 +120,8 @@ func main() {
 	case "parse":
 		expr, err := parseFile(fileContents)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing file: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(65)
 		}
 
 		fmt.Println(expr)

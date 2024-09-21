@@ -5,7 +5,7 @@ type Parser struct {
 	current int
 }
 
-func (parser *Parser) parse() Expr {
+func (parser *Parser) parse() (Expr, error) {
 	return expression(parser)
 }
 

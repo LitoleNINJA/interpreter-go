@@ -42,16 +42,19 @@ func (g Grouping) String() string {
 	return fmt.Sprintf("(group %s)", g.expression)
 }
 
-func expression(parser *Parser) Expr {
+func expression(parser *Parser) (Expr, error) {
 	return equality(parser)
 }
 
-func equality(parser *Parser) Expr {
-	expr := comparison(parser)
+func equality(parser *Parser) (Expr, error) {
+	expr, err := comparison(parser)
 
 	for parser.match(BANG_EQUAL, EQUAL_EQUAL) {
 		operator := parser.previous()
-		right := comparison(parser)
+		right, err := comparison(parser)
+		if err != nil {
+			return Binary{}, err
+		}
 		expr = &Binary{
 			left:     expr,
 			operator: operator,
@@ -59,15 +62,18 @@ func equality(parser *Parser) Expr {
 		}
 	}
 
-	return expr
+	return expr, err
 }
 
-func comparison(parser *Parser) Expr {
-	expr := term(parser)
+func comparison(parser *Parser) (Expr, error) {
+	expr, err := term(parser)
 
 	for parser.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
 		operator := parser.previous()
-		right := term(parser)
+		right, err := term(parser)
+		if err != nil {
+			return Binary{}, err
+		}
 		expr = &Binary{
 			left:     expr,
 			operator: operator,
@@ -75,15 +81,18 @@ func comparison(parser *Parser) Expr {
 		}
 	}
 
-	return expr
+	return expr, err
 }
 
-func term(parser *Parser) Expr {
-	expr := factor(parser)
+func term(parser *Parser) (Expr, error) {
+	expr, err := factor(parser)
 
 	for parser.match(MINUS, PLUS) {
 		operator := parser.previous()
-		right := factor(parser)
+		right, err := factor(parser)
+		if err != nil {
+			return Binary{}, err
+		}
 		expr = &Binary{
 			left:     expr,
 			operator: operator,
@@ -91,15 +100,18 @@ func term(parser *Parser) Expr {
 		}
 	}
 
-	return expr
+	return expr, err
 }
 
-func factor(parser *Parser) Expr {
-	expr := unary(parser)
+func factor(parser *Parser) (Expr, error) {
+	expr, err := unary(parser)
 
 	for parser.match(STAR, SLASH) {
 		operator := parser.previous()
-		right := unary(parser)
+		right, err := unary(parser)
+		if err != nil {
+			return Binary{}, err
+		}
 		expr = &Binary{
 			left:     expr,
 			operator: operator,
@@ -107,47 +119,49 @@ func factor(parser *Parser) Expr {
 		}
 	}
 
-	return expr
+	return expr, err
 }
 
-func unary(parser *Parser) Expr {
+func unary(parser *Parser) (Expr, error) {
 	if parser.match(BANG, MINUS) {
 		operator := parser.previous()
-		right := unary(parser)
+		right, err := unary(parser)
+		if err != nil {
+			return Binary{}, err
+		}
 		return Unary{
 			operator: operator,
 			right:    right,
-		}
+		}, err
 	}
 
 	return primary(parser)
 }
 
-func primary(parser *Parser) Expr {
+func primary(parser *Parser) (Expr, error) {
 	if parser.match(FALSE) {
 		return Literal{
 			value: "false",
-		}
+		}, nil
 	} else if parser.match(TRUE) {
 		return Literal{
 			value: "true",
-		}
+		}, nil
 	} else if parser.match(NIL) {
 		return Literal{
 			value: "nil",
-		}
+		}, nil
 	} else if parser.match(NUMBER, STRING) {
-		return Literal{value: parser.previous().literal}
+		return Literal{value: parser.previous().literal}, nil
 	} else if parser.match(LEFT_PAREN) {
-		expr := expression(parser)
+		expr, err := expression(parser)
 		consume(parser, RIGHT_PAREN, "Expect ')' after expression.")
 		return Grouping{
 			expression: expr,
-		}
+		}, err
 	}
 
-	fmt.Println("Should not reach here !")
-	return Grouping{}
+	return Grouping{}, fmt.Errorf("[line 1] Error at ')': Expect expression.")
 }
 
 func consume(parser *Parser, tokenType string, msg string) {
@@ -164,7 +178,7 @@ func parseFile(fileContent []byte) (Expr, error) {
 	}
 
 	// fmt.Println(parser.tokens)
-	expr := parser.parse()
+	expr, err := parser.parse()
 
-	return expr, nil
+	return expr, err
 }
