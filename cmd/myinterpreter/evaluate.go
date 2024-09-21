@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type Value interface{}
@@ -90,7 +91,17 @@ func add(left Value, right Value) Value {
 	case float64:
 		return left.(float64) + right.(float64)
 	case string:
-		return left.(string) + right.(string)
+		leftVal := left.(string)
+		var rightVal string
+		switch right := right.(type) {
+		case string:
+			rightVal = right
+		case float64:
+			rightVal = fmt.Sprintf("%f", right)
+			rightVal = strings.Trim(rightVal, "0")
+			rightVal = strings.Trim(rightVal, ".")
+		}
+		return leftVal + rightVal
 	default:
 		return nil
 	}
