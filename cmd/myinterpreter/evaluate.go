@@ -56,9 +56,27 @@ func (b *Binary) Evaluate() (Value, error) {
 	case MINUS:
 		return leftVal.(float64) - rightVal.(float64), nil
 	case STAR:
-		return leftVal.(float64) * rightVal.(float64), nil
+		var left, right float64
+		left, ok := leftVal.(float64)
+		if !ok {
+			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+		}
+		right, ok = rightVal.(float64)
+		if !ok {
+			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+		}
+		return left * right, nil
 	case SLASH:
-		return leftVal.(float64) / rightVal.(float64), nil
+		var left, right float64
+		left, ok := leftVal.(float64)
+		if !ok {
+			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+		}
+		right, ok = rightVal.(float64)
+		if !ok {
+			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+		}
+		return left / right, nil
 	case GREATER:
 		return leftVal.(float64) > rightVal.(float64), nil
 	case GREATER_EQUAL:
