@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -16,7 +17,14 @@ func (l *Literal) Evaluate() Value {
 
 func (u *Unary) Evaluate() Value {
 	val := u.right.Evaluate()
-	// fmt.Println(val)
+
+	switch u.operator.TokenType {
+	case MINUS:
+		val = -val.(float64)
+	case BANG:
+		val = !isTruthy(val)
+	}
+
 	return val
 }
 
@@ -35,4 +43,29 @@ func evaluate(fileContents []byte) (Value, error) {
 	}
 
 	return expr.Evaluate(), nil
+}
+
+func isTruthy(val Value) bool {
+	switch val := val.(type) {
+	case bool:
+		return val
+	case string:
+		if b, err := strconv.ParseBool(val); err == nil {
+			return b
+		}
+		if f, err := strconv.ParseFloat(val, 64); err == nil {
+			return f != 0
+		}
+		if val == "nil" {
+			return false
+		}
+
+		fmt.Println("Should not reach here !")
+		return false
+	case float64:
+		return val != 0
+	default:
+		fmt.Println("Unknown type !")
+		return false
+	}
 }
