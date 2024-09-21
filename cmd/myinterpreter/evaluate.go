@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"strconv"
-	"strings"
 )
 
 type Value interface{}
 
 func (l *Literal) Evaluate() (Value, error) {
-	if l.t != "number" {
+	if l.t == "bool" {
+		return strconv.ParseBool(l.value)
+	} else if l.t != "number" {
 		return l.value, nil
 	} else {
 		val, err := strconv.ParseFloat(l.value, 64)
@@ -52,9 +53,18 @@ func (b *Binary) Evaluate() (Value, error) {
 
 	switch b.operator.TokenType {
 	case PLUS:
-		return add(leftVal, rightVal), nil
+		return add(leftVal, rightVal)
 	case MINUS:
-		return leftVal.(float64) - rightVal.(float64), nil
+		var left, right float64
+		left, ok := leftVal.(float64)
+		if !ok {
+			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+		}
+		right, ok = rightVal.(float64)
+		if !ok {
+			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+		}
+		return left - right, nil
 	case STAR:
 		var left, right float64
 		left, ok := leftVal.(float64)
@@ -132,24 +142,24 @@ func isTruthy(val Value) bool {
 	}
 }
 
-func add(left Value, right Value) Value {
+func add(left Value, right Value) (Value, error) {
 	switch left.(type) {
 	case float64:
-		return left.(float64) + right.(float64)
+		leftVal := left.(float64)
+		if rightVal, ok := right.(float64); !ok {
+			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+		} else {
+			return leftVal + rightVal, nil
+		}
 	case string:
 		leftVal := left.(string)
-		var rightVal string
-		switch right := right.(type) {
-		case string:
-			rightVal = right
-		case float64:
-			rightVal = fmt.Sprintf("%f", right)
-			rightVal = strings.Trim(rightVal, "0")
-			rightVal = strings.Trim(rightVal, ".")
+		if rightVal, ok := right.(string); !ok {
+			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+		} else {
+			return leftVal + rightVal, nil
 		}
-		return leftVal + rightVal
 	default:
-		return nil
+		return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
 	}
 }
 
