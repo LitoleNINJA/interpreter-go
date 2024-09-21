@@ -5,7 +5,10 @@ import (
 	"os"
 )
 
-type Expr interface{}
+type Expr interface {
+	String() string
+	Evaluate() Value
+}
 
 type Literal struct {
 	value string
@@ -53,7 +56,7 @@ func equality(parser *Parser) (Expr, error) {
 		operator := parser.previous()
 		right, err := comparison(parser)
 		if err != nil {
-			return Binary{}, err
+			return &Binary{}, err
 		}
 		expr = &Binary{
 			left:     expr,
@@ -72,7 +75,7 @@ func comparison(parser *Parser) (Expr, error) {
 		operator := parser.previous()
 		right, err := term(parser)
 		if err != nil {
-			return Binary{}, err
+			return &Binary{}, err
 		}
 		expr = &Binary{
 			left:     expr,
@@ -91,7 +94,7 @@ func term(parser *Parser) (Expr, error) {
 		operator := parser.previous()
 		right, err := factor(parser)
 		if err != nil {
-			return Binary{}, err
+			return &Binary{}, err
 		}
 		expr = &Binary{
 			left:     expr,
@@ -110,7 +113,7 @@ func factor(parser *Parser) (Expr, error) {
 		operator := parser.previous()
 		right, err := unary(parser)
 		if err != nil {
-			return Binary{}, err
+			return &Binary{}, err
 		}
 		expr = &Binary{
 			left:     expr,
@@ -127,9 +130,9 @@ func unary(parser *Parser) (Expr, error) {
 		operator := parser.previous()
 		right, err := unary(parser)
 		if err != nil {
-			return Binary{}, err
+			return &Binary{}, err
 		}
-		return Unary{
+		return &Unary{
 			operator: operator,
 			right:    right,
 		}, err
@@ -140,28 +143,28 @@ func unary(parser *Parser) (Expr, error) {
 
 func primary(parser *Parser) (Expr, error) {
 	if parser.match(FALSE) {
-		return Literal{
+		return &Literal{
 			value: "false",
 		}, nil
 	} else if parser.match(TRUE) {
-		return Literal{
+		return &Literal{
 			value: "true",
 		}, nil
 	} else if parser.match(NIL) {
-		return Literal{
+		return &Literal{
 			value: "nil",
 		}, nil
 	} else if parser.match(NUMBER, STRING) {
-		return Literal{value: parser.previous().literal}, nil
+		return &Literal{value: parser.previous().literal}, nil
 	} else if parser.match(LEFT_PAREN) {
 		expr, err := expression(parser)
 		consume(parser, RIGHT_PAREN, "Expect ')' after expression.")
-		return Grouping{
+		return &Grouping{
 			expression: expr,
 		}, err
 	}
 
-	return Grouping{}, fmt.Errorf("[line 1] Error at ')': Expect expression.")
+	return &Grouping{}, fmt.Errorf("[line 1] Error at ')': Expect expression.")
 }
 
 func consume(parser *Parser, tokenType string, msg string) {

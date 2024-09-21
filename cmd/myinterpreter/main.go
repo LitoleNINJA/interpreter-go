@@ -125,6 +125,14 @@ func main() {
 		}
 
 		fmt.Println(expr)
+	case "evaluate":
+		val, err := evaluate(fileContents)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(65)
+		}
+
+		fmt.Println(val)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
