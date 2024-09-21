@@ -34,7 +34,7 @@ func (b *Binary) Evaluate() Value {
 
 	switch b.operator.TokenType {
 	case PLUS:
-		return leftVal.(float64) + rightVal.(float64)
+		return add(leftVal, rightVal)
 	case MINUS:
 		return leftVal.(float64) - rightVal.(float64)
 	case STAR:
@@ -82,5 +82,16 @@ func isTruthy(val Value) bool {
 	default:
 		fmt.Println("Unknown type !")
 		return false
+	}
+}
+
+func add(left Value, right Value) Value {
+	switch left.(type) {
+	case float64:
+		return left.(float64) + right.(float64)
+	case string:
+		return left.(string) + right.(string)
+	default:
+		return nil
 	}
 }
