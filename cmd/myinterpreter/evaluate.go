@@ -1,13 +1,23 @@
 package main
 
+import (
+	"strconv"
+)
+
 type Value interface{}
 
 func (l *Literal) Evaluate() Value {
-	return l.value
+	if f, err := strconv.ParseFloat(l.value, 64); err != nil {
+		return l.value
+	} else {
+		return f
+	}
 }
 
 func (u *Unary) Evaluate() Value {
-	return u.operator.lexeme
+	val := u.right.Evaluate()
+	// fmt.Println(val)
+	return val
 }
 
 func (b *Binary) Evaluate() Value {
