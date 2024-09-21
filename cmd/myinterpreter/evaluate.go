@@ -9,10 +9,11 @@ import (
 type Value interface{}
 
 func (l *Literal) Evaluate() Value {
-	if f, err := strconv.ParseFloat(l.value, 64); err != nil {
+	if l.t != "number" {
 		return l.value
 	} else {
-		return f
+		val, _ := strconv.ParseFloat(l.value, 64)
+		return val
 	}
 }
 
@@ -50,6 +51,10 @@ func (b *Binary) Evaluate() Value {
 		return leftVal.(float64) < rightVal.(float64)
 	case LESS_EQUAL:
 		return leftVal.(float64) <= rightVal.(float64)
+	case EQUAL_EQUAL:
+		return checkEqual(leftVal, rightVal)
+	case BANG_EQUAL:
+		return !checkEqual(leftVal, rightVal)
 	default:
 		fmt.Println("Unknown operator!")
 		return nil
@@ -112,5 +117,25 @@ func add(left Value, right Value) Value {
 		return leftVal + rightVal
 	default:
 		return nil
+	}
+}
+
+func checkEqual(leftVal Value, rightVal Value) bool {
+	switch left := leftVal.(type) {
+	case float64:
+		if right, ok := rightVal.(float64); !ok {
+			return false
+		} else {
+			return left == right
+		}
+	case string:
+		if right, ok := rightVal.(string); !ok {
+			return false
+		} else {
+			return left == right
+		}
+	default:
+		fmt.Println("Type mismatch !")
+		return false
 	}
 }

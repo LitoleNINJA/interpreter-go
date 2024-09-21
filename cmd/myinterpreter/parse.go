@@ -12,6 +12,7 @@ type Expr interface {
 
 type Literal struct {
 	value string
+	t     string
 }
 
 func (l Literal) String() string {
@@ -145,17 +146,28 @@ func primary(parser *Parser) (Expr, error) {
 	if parser.match(FALSE) {
 		return &Literal{
 			value: "false",
+			t:     "bool",
 		}, nil
 	} else if parser.match(TRUE) {
 		return &Literal{
 			value: "true",
+			t:     "bool",
 		}, nil
 	} else if parser.match(NIL) {
 		return &Literal{
 			value: "nil",
+			t:     "nil",
 		}, nil
-	} else if parser.match(NUMBER, STRING) {
-		return &Literal{value: parser.previous().literal}, nil
+	} else if parser.match(STRING) {
+		return &Literal{
+			value: parser.previous().literal,
+			t:     "string",
+		}, nil
+	} else if parser.match(NUMBER) {
+		return &Literal{
+			value: parser.previous().literal,
+			t:     "number",
+		}, nil
 	} else if parser.match(LEFT_PAREN) {
 		expr, err := expression(parser)
 		consume(parser, RIGHT_PAREN, "Expect ')' after expression.")
