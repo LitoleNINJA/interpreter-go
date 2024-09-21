@@ -42,6 +42,14 @@ func (b *Binary) Evaluate() Value {
 		return leftVal.(float64) * rightVal.(float64)
 	case SLASH:
 		return leftVal.(float64) / rightVal.(float64)
+	case GREATER:
+		return leftVal.(float64) > rightVal.(float64)
+	case GREATER_EQUAL:
+		return leftVal.(float64) >= rightVal.(float64)
+	case LESS:
+		return leftVal.(float64) < rightVal.(float64)
+	case LESS_EQUAL:
+		return leftVal.(float64) <= rightVal.(float64)
 	default:
 		fmt.Println("Unknown operator!")
 		return nil
