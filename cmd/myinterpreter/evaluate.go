@@ -88,12 +88,28 @@ func (b *Binary) Evaluate() (Value, error) {
 		}
 		return left / right, nil
 	case GREATER:
+		err := checkBothNumber(leftVal, rightVal)
+		if err != nil {
+			return nil, err
+		}
 		return leftVal.(float64) > rightVal.(float64), nil
 	case GREATER_EQUAL:
+		err := checkBothNumber(leftVal, rightVal)
+		if err != nil {
+			return nil, err
+		}
 		return leftVal.(float64) >= rightVal.(float64), nil
 	case LESS:
+		err := checkBothNumber(leftVal, rightVal)
+		if err != nil {
+			return nil, err
+		}
 		return leftVal.(float64) < rightVal.(float64), nil
 	case LESS_EQUAL:
+		err := checkBothNumber(leftVal, rightVal)
+		if err != nil {
+			return nil, err
+		}
 		return leftVal.(float64) <= rightVal.(float64), nil
 	case EQUAL_EQUAL:
 		return checkEqual(leftVal, rightVal), nil
@@ -180,5 +196,18 @@ func checkEqual(leftVal Value, rightVal Value) bool {
 	default:
 		fmt.Println("Type mismatch !")
 		return false
+	}
+}
+
+func checkBothNumber(leftVal Value, rightVal Value) error {
+	switch leftVal.(type) {
+	case float64:
+		if _, ok := rightVal.(float64); !ok {
+			return fmt.Errorf("Operands must be numbers.\n[line 1]")
+		} else {
+			return nil
+		}
+	default:
+		return fmt.Errorf("Operands must be numbers.\n[line 1]")
 	}
 }
