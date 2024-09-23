@@ -193,6 +193,12 @@ func checkEqual(leftVal Value, rightVal Value) bool {
 		} else {
 			return left == right
 		}
+	case bool:
+		if right, ok := rightVal.(bool); !ok {
+			return false
+		} else {
+			return left == right
+		}
 	default:
 		fmt.Println("Type mismatch !")
 		return false

@@ -227,9 +227,9 @@ func addToken(ch string, index *int) Token {
 	case "\n":
 		line++
 	case `"`:
-		str := readString(index)
-		if str == "" {
-			fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.\n", line)
+		str, err := readString(index)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[line %d] %s\n", line, err)
 			exitCode = 65
 			break
 		} else {
@@ -270,18 +270,20 @@ func nextToken(index int) string {
 	return ""
 }
 
-func readString(index *int) string {
-	str := ""
-	*index++
-	for *index < len(fileContentString) && fileContentString[*index] != '"' {
-		str += string(fileContentString[*index])
-		*index++
+func readString(index *int) (string, error) {
+	j := *index + 1
+	for j < len(fileContentString) && fileContentString[j] != '"' {
+		j++
 	}
 
-	if *index < len(fileContentString) && fileContentString[*index] == '"' {
-		return str
+	if j < len(fileContentString) && fileContentString[j] == '"' {
+		str := fileContentString[*index+1 : j]
+		*index = j
+		return str, nil
 	}
-	return ""
+
+	*index = j
+	return "", fmt.Errorf("Error: Unterminated string.")
 }
 
 func readNumber(index *int) (string, string) {
@@ -327,7 +329,7 @@ func isStringDigit(s string) bool {
 }
 
 func isIndentifierStart(s string) bool {
-	return (s >= "a" && s <= "z") || (s >= "A" && s <= "Z") || (s == "_")
+	return len(s) == 1 && (s >= "a" && s <= "z") || (s >= "A" && s <= "Z") || (s == "_")
 }
 
 func isAlphaNum(s string) bool {
