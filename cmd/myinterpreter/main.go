@@ -137,7 +137,7 @@ func main() {
 		err := run(fileContents)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
-			os.Exit(65)
+			os.Exit(70)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)

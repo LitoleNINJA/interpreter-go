@@ -2,36 +2,37 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
-func getPrintContents(line string) string {
-	index := strings.Index(line, "print ")
-	if index == -1 {
-		return ""
+func getPrintContents(line []byte) []byte {
+	s, ok := strings.CutPrefix(string(line), "print")
+	if !ok {
+		fmt.Printf("Print line dosent start with Print : %s\n", line)
+		return []byte{}
 	}
 
-	return line[index+6:]
+	return []byte(s)
 }
 
-func fomatLine(line string) string {
-	line = strings.TrimSpace(line)
-
-	return line
+func isPrintStmt(stmt []byte) bool {
+	stmtString := string(stmt)
+	return strings.HasPrefix(stmtString, "print")
 }
 
-func readPrintStmt(fileContent []byte) [][]byte {
-	fileString := string(fileContent)
-	len := len(fileString)
-
+func readLines(fileContent []byte) [][]byte {
 	var lines [][]byte
-	for i := 0; i < len; i++ {
-		if i < len-5 && fileString[i:i+5] == "print" {
-			index := strings.Index(fileString[i:], ";")
-			line := fileString[i : i+index]
-			line = getPrintContents(line)
-			line = fomatLine(line)
-			lines = append(lines, []byte(line))
+	line := make([]byte, 0)
+	for i := 0; i < len(fileContent); i++ {
+		if fileContent[i] == 59 {
+			line = []byte(strings.TrimSpace(string(line)))
+			// fmt.Printf("Line : %s\n", line)
+			lines = append(lines, line)
+			line = make([]byte, 0)
+		} else {
+			line = append(line, fileContent[i])
+
 		}
 	}
 
@@ -39,15 +40,27 @@ func readPrintStmt(fileContent []byte) [][]byte {
 }
 
 func run(fileContents []byte) error {
-	lines := readPrintStmt(fileContents)
-
+	lines := readLines(fileContents)
+	// fmt.Println(lines)
 	for _, stmt := range lines {
+		printStmt := false
+		if isPrintStmt(stmt) {
+			printStmt = true
+			stmt = getPrintContents(stmt)
+		}
+		if len(stmt) == 0 {
+			fmt.Println("Empty statement !")
+			os.Exit(65)
+		}
+		// fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
 		expr, err := evaluate(stmt)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(expr)
+		if printStmt {
+			fmt.Println(expr)
+		}
 	}
 	return nil
 }

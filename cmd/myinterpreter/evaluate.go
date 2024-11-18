@@ -32,7 +32,7 @@ func (u *Unary) Evaluate() (Value, error) {
 		if valFloat, ok := val.(float64); ok {
 			val = -valFloat
 		} else {
-			return nil, fmt.Errorf("Operand must be a number.\n[line 1]")
+			return nil, fmt.Errorf("operand must be a number.\n[line 1]")
 		}
 	case BANG:
 		val = !isTruthy(val)
@@ -58,33 +58,33 @@ func (b *Binary) Evaluate() (Value, error) {
 		var left, right float64
 		left, ok := leftVal.(float64)
 		if !ok {
-			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		right, ok = rightVal.(float64)
 		if !ok {
-			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		return left - right, nil
 	case STAR:
 		var left, right float64
 		left, ok := leftVal.(float64)
 		if !ok {
-			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		right, ok = rightVal.(float64)
 		if !ok {
-			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		return left * right, nil
 	case SLASH:
 		var left, right float64
 		left, ok := leftVal.(float64)
 		if !ok {
-			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		right, ok = rightVal.(float64)
 		if !ok {
-			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		return left / right, nil
 	case GREATER:
@@ -116,7 +116,7 @@ func (b *Binary) Evaluate() (Value, error) {
 	case BANG_EQUAL:
 		return !checkEqual(leftVal, rightVal), nil
 	default:
-		return nil, fmt.Errorf("Unknown Operator !")
+		return nil, fmt.Errorf("unknown operator : %s", b.operator.literal)
 	}
 }
 
@@ -163,19 +163,19 @@ func add(left Value, right Value) (Value, error) {
 	case float64:
 		leftVal := left.(float64)
 		if rightVal, ok := right.(float64); !ok {
-			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		} else {
 			return leftVal + rightVal, nil
 		}
 	case string:
 		leftVal := left.(string)
 		if rightVal, ok := right.(string); !ok {
-			return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		} else {
 			return leftVal + rightVal, nil
 		}
 	default:
-		return nil, fmt.Errorf("Operands must be numbers.\n[line 1]")
+		return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 	}
 }
 
@@ -209,11 +209,11 @@ func checkBothNumber(leftVal Value, rightVal Value) error {
 	switch leftVal.(type) {
 	case float64:
 		if _, ok := rightVal.(float64); !ok {
-			return fmt.Errorf("Operands must be numbers.\n[line 1]")
+			return fmt.Errorf("operands must be numbers.\n[line 1]")
 		} else {
 			return nil
 		}
 	default:
-		return fmt.Errorf("Operands must be numbers.\n[line 1]")
+		return fmt.Errorf("operands must be numbers.\n[line 1]")
 	}
 }
