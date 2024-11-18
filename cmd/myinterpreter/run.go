@@ -49,7 +49,6 @@ func run(fileContents []byte) error {
 			stmt = getPrintContents(stmt)
 		}
 		if len(stmt) == 0 {
-			fmt.Println("Empty statement !")
 			os.Exit(65)
 		}
 		// fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
