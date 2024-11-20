@@ -79,7 +79,7 @@ func run(fileContents []byte) error {
 			stmt = getPrintContents(stmt)
 		} else if isVarDeclaration(stmt) {
 			key, val := getVarDeclaration(stmt)
-			if len(val) > 0 && val[0] != '"' && !unicode.IsDigit(rune(val[0])) {
+			if len(val) > 0 && val[0] != '"' && unicode.IsLetter(rune(val[0])) && val != "nil" {
 				return fmt.Errorf("Undefined variable '%s'", val)
 			}
 			values[key] = val
