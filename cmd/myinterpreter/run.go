@@ -9,7 +9,7 @@ import (
 var values map[string]string
 
 func getPrintContents(line []byte) []byte {
-	s, ok := strings.CutPrefix(string(line), "print ")
+	s, ok := strings.CutPrefix(string(line), "print")
 	if !ok {
 		fmt.Printf("Print line dosent start with Print : %s\n", line)
 		return []byte{}
