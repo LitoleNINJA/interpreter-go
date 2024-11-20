@@ -1,6 +1,6 @@
-{
-  var a = "outer";
-  {
-    print a; // expect: outer
-  }
-}
+var quz = 73 + 26 * 20;
+print quz;
+var hello = 26 * 20;
+print quz + hello;
+var foo;
+print foo;

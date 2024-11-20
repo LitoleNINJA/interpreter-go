@@ -53,8 +53,12 @@ func isVarDeclaration(stmt []byte) bool {
 func getVarDeclaration(stmt []byte) (string, string) {
 	stmtString := string(stmt)
 	stmtString, _ = strings.CutPrefix(stmtString, "var ")
-	key := strings.TrimSpace(strings.Split(stmtString, "=")[0])
-	value := strings.TrimSpace(strings.Split(stmtString, "=")[1])
+	split := strings.Split(stmtString, "=")
+	key := strings.TrimSpace(split[0])
+	value := "nil"
+	if len(split) == 2 {
+		value = strings.TrimSpace(split[1])
+	}
 
 	if val, ok := values[value]; ok {
 		value = val
