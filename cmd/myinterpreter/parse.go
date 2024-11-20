@@ -191,7 +191,7 @@ func primary(parser *Parser) (Expr, error) {
 
 func consume(parser *Parser, tokenType string, msg string) {
 	if !parser.match(tokenType) {
-		fmt.Printf("ERROR : %s\n", msg)
+		fmt.Fprintf(os.Stderr, "ERROR : %s\n", msg)
 		os.Exit(65)
 	}
 }

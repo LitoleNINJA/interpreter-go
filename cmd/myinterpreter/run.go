@@ -9,7 +9,7 @@ import (
 var values map[string]string
 
 func getPrintContents(line []byte) []byte {
-	s, ok := strings.CutPrefix(string(line), "print ")
+	s, ok := strings.CutPrefix(string(line), "print")
 	if !ok {
 		fmt.Printf("Print line dosent start with Print : %s\n", line)
 		return []byte{}
@@ -24,7 +24,7 @@ func getPrintContents(line []byte) []byte {
 
 func isPrintStmt(stmt []byte) bool {
 	stmtString := string(stmt)
-	return strings.HasPrefix(stmtString, "print ")
+	return strings.HasPrefix(stmtString, "print")
 }
 
 func readLines(fileContent []byte) [][]byte {
@@ -82,7 +82,7 @@ func run(fileContents []byte) error {
 			os.Exit(65)
 		}
 
-		// fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
+		fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
 		expr, err := evaluate(stmt)
 		if err != nil {
 			return err
