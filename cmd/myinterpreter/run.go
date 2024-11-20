@@ -82,7 +82,7 @@ func run(fileContents []byte) error {
 			os.Exit(65)
 		}
 
-		// fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
+		fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
 		expr, err := evaluate(stmt)
 		if err != nil {
 			return err
