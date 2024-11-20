@@ -1,0 +1,12 @@
+print true != true;
+
+print "15
+27
+73
+";
+
+print "There should be an empty line above this.";
+
+print "(" + "" + ")";
+
+print "non-ascii: ॐ";
