@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 )
 
 var values map[string]string
@@ -78,6 +79,9 @@ func run(fileContents []byte) error {
 			stmt = getPrintContents(stmt)
 		} else if isVarDeclaration(stmt) {
 			key, val := getVarDeclaration(stmt)
+			if len(val) > 0 && val[0] != '"' && !unicode.IsDigit(rune(val[0])) {
+				return fmt.Errorf("Undefined variable '%s'", val)
+			}
 			values[key] = val
 			continue
 		}
