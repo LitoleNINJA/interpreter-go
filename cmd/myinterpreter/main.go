@@ -108,11 +108,7 @@ func main() {
 
 	switch command {
 	case "tokenize":
-		tokens, err := tokenizeFile(fileContents)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-			os.Exit(65)
-		}
+		tokens := tokenizeFile(fileContents)
 
 		for _, token := range tokens {
 			if token != (Token{}) {
@@ -151,21 +147,23 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func tokenizeFile(fileContents []byte) ([]Token, error) {
+func tokenizeFile(fileContents []byte) []Token {
 	fileContentString = string(fileContents)
 
 	tokens := []Token{}
 	for i := 0; i < len(fileContentString); i++ {
 		newToken, err := addToken(string(fileContentString[i]), &i)
 		if err != nil {
-			return tokens, err
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			return tokens
 		}
+		// fmt.Printf("Token : %+v\n", newToken)
 		if newToken != (Token{}) {
 			tokens = append(tokens, newToken)
 		}
 	}
 
-	return tokens, nil
+	return tokens
 }
 
 func addToken(ch string, index *int) (Token, error) {
@@ -237,7 +235,7 @@ func addToken(ch string, index *int) (Token, error) {
 		str, err := readString(index)
 		if err != nil {
 			exitCode = 65
-			return Token{}, fmt.Errorf("[line %d] %s", line, err)
+			return token, fmt.Errorf("[line %d] %s", line, err)
 		} else {
 			token.setToken(STRING, `"`+str+`"`, str)
 		}
@@ -262,7 +260,7 @@ func addToken(ch string, index *int) (Token, error) {
 			*index--
 		} else {
 			exitCode = 65
-			return Token{}, fmt.Errorf("[line %d] Error: Unexpected character: %s", line, ch)
+			return token, fmt.Errorf("[line %d] Error: Unexpected character: %s", line, ch)
 		}
 	}
 
@@ -289,7 +287,7 @@ func readString(index *int) (string, error) {
 	}
 
 	*index = j
-	return "", fmt.Errorf("Error: Unterminated string.")
+	return "", fmt.Errorf("error: unterminated string")
 }
 
 func readNumber(index *int) (string, string) {

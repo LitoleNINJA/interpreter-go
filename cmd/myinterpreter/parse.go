@@ -197,13 +197,8 @@ func consume(parser *Parser, tokenType string, msg string) {
 }
 
 func parseFile(fileContent []byte) (Expr, error) {
-	token, err := tokenizeFile(fileContent)
-	if err != nil {
-		return nil, err
-	}
-
 	parser := &Parser{
-		tokens:  token,
+		tokens:  tokenizeFile(fileContent),
 		current: 0,
 	}
 
