@@ -155,7 +155,6 @@ func tokenizeFile(fileContents []byte) []Token {
 		newToken, err := addToken(string(fileContentString[i]), &i)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
-			return tokens
 		}
 		// fmt.Printf("Token : %+v\n", newToken)
 		if newToken != (Token{}) {
