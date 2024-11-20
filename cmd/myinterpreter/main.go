@@ -335,3 +335,15 @@ func isIndentifierStart(s string) bool {
 func isAlphaNum(s string) bool {
 	return isIndentifierStart(s) || isStringDigit(s)
 }
+
+func getStringType(s string) string {
+	if _, err := strconv.ParseFloat(s, 64); err == nil {
+		return "number"
+	} else if s == "true" || s == "false" {
+		return "bool"
+	} else if s == "nil" {
+		return "nil"
+	} else {
+		return "string"
+	}
+}

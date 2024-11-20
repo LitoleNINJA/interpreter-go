@@ -6,19 +6,25 @@ import (
 	"strings"
 )
 
+var values map[string]string
+
 func getPrintContents(line []byte) []byte {
-	s, ok := strings.CutPrefix(string(line), "print")
+	s, ok := strings.CutPrefix(string(line), "print ")
 	if !ok {
 		fmt.Printf("Print line dosent start with Print : %s\n", line)
 		return []byte{}
 	}
 
+	s = strings.TrimSpace(s)
+	if val, ok := values[s]; ok {
+		s = val
+	}
 	return []byte(s)
 }
 
 func isPrintStmt(stmt []byte) bool {
 	stmtString := string(stmt)
-	return strings.HasPrefix(stmtString, "print")
+	return strings.HasPrefix(stmtString, "print ")
 }
 
 func readLines(fileContent []byte) [][]byte {
@@ -39,18 +45,43 @@ func readLines(fileContent []byte) [][]byte {
 	return lines
 }
 
+func isVarDeclaration(stmt []byte) bool {
+	stmtString := string(stmt)
+	return strings.HasPrefix(stmtString, "var ")
+}
+
+func getVarDeclaration(stmt []byte) (string, string) {
+	stmtString := string(stmt)
+	stmtString, _ = strings.CutPrefix(stmtString, "var ")
+	key := strings.TrimSpace(strings.Split(stmtString, "=")[0])
+	value := strings.TrimSpace(strings.Split(stmtString, "=")[1])
+
+	if val, ok := values[value]; ok {
+		value = val
+	}
+
+	return key, value
+}
+
 func run(fileContents []byte) error {
 	lines := readLines(fileContents)
+	values = make(map[string]string)
 	// fmt.Println(lines)
 	for _, stmt := range lines {
 		printStmt := false
 		if isPrintStmt(stmt) {
 			printStmt = true
 			stmt = getPrintContents(stmt)
+		} else if isVarDeclaration(stmt) {
+			key, val := getVarDeclaration(stmt)
+			values[key] = val
+			continue
 		}
+
 		if len(stmt) == 0 {
 			os.Exit(65)
 		}
+
 		// fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
 		expr, err := evaluate(stmt)
 		if err != nil {
