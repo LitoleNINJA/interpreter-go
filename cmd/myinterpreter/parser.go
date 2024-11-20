@@ -30,12 +30,14 @@ func (parser *Parser) check(tokenType string) bool {
 }
 
 func (parser *Parser) peek() Token {
+	if parser.current >= len(parser.tokens) {
+		return Token{}
+	}
 	return parser.tokens[parser.current]
 }
 
 func (parser *Parser) advance() {
 	parser.current += 1
-	return
 }
 
 func (parser *Parser) previous() Token {

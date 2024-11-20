@@ -174,14 +174,24 @@ func primary(parser *Parser) (Expr, error) {
 		return &Grouping{
 			expression: expr,
 		}, err
+	} else if parser.match(IDENTIFIER) {
+		if val, ok := values[parser.previous().lexeme]; !ok {
+			return &Literal{}, fmt.Errorf("%s variable not declared", parser.previous().lexeme)
+		} else {
+			valType := getStringType(val)
+			return &Literal{
+				value: val,
+				t:     valType,
+			}, nil
+		}
 	}
 
-	return &Grouping{}, fmt.Errorf("[line 1] Error at ')': Expect expression.")
+	return &Grouping{}, fmt.Errorf("[line 1] Error at ')': Expect expression")
 }
 
 func consume(parser *Parser, tokenType string, msg string) {
 	if !parser.match(tokenType) {
-		fmt.Errorf("ERROR : %s", msg)
+		fmt.Printf("ERROR : %s\n", msg)
 		os.Exit(65)
 	}
 }
@@ -192,7 +202,7 @@ func parseFile(fileContent []byte) (Expr, error) {
 		current: 0,
 	}
 
-	// fmt.Println(parser.tokens)
+	// fmt.Println("Tokens : ", parser.tokens)
 	expr, err := parser.parse()
 
 	return expr, err
