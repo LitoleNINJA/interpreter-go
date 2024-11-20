@@ -24,7 +24,7 @@ func getPrintContents(line []byte) []byte {
 
 func isPrintStmt(stmt []byte) bool {
 	stmtString := string(stmt)
-	return strings.HasPrefix(stmtString, "print ")
+	return strings.HasPrefix(stmtString, "print")
 }
 
 func readLines(fileContent []byte) [][]byte {
