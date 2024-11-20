@@ -287,7 +287,7 @@ func readString(index *int) (string, error) {
 	}
 
 	*index = j
-	return "", fmt.Errorf("error: unterminated string")
+	return "", fmt.Errorf("Error: Unterminated string.")
 }
 
 func readNumber(index *int) (string, string) {
