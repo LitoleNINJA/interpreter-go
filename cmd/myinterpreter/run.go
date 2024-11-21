@@ -121,6 +121,8 @@ func handleAssignment(stmt string) string {
 			}
 
 			val = fmt.Sprint(evalVal)
+		} else if mapVal, ok := values[val]; ok {
+			val = mapVal
 		}
 
 		return val
