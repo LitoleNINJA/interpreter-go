@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 type Expr interface {
@@ -176,9 +177,18 @@ func primary(parser *Parser) (Expr, error) {
 		}, err
 	} else if parser.match(IDENTIFIER) {
 		if val, ok := values[parser.previous().lexeme]; !ok {
-			return &Literal{}, fmt.Errorf("%s variable not declared", parser.previous().lexeme)
+			return &Literal{}, fmt.Errorf("Undefined variable '%s'.", parser.previous().lexeme)
 		} else {
+			if strings.ContainsAny(val, "+-*/") {
+				value, err := evaluate([]byte(val))
+				if err != nil {
+					return &Literal{}, err
+				}
+
+				val = fmt.Sprint(value)
+			}
 			valType := getStringType(val)
+			// fmt.Printf("value : %s, type : %s\n", val, valType)
 			return &Literal{
 				value: val,
 				t:     valType,
@@ -186,12 +196,12 @@ func primary(parser *Parser) (Expr, error) {
 		}
 	}
 
-	return &Grouping{}, fmt.Errorf("[line 1] Error at ')': Expect expression")
+	return &Grouping{}, fmt.Errorf("Error at ')': Expect expression")
 }
 
 func consume(parser *Parser, tokenType string, msg string) {
 	if !parser.match(tokenType) {
-		fmt.Printf("ERROR : %s\n", msg)
+		fmt.Fprintf(os.Stderr, "ERROR : %s\n", msg)
 		os.Exit(65)
 	}
 }

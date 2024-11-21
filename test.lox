@@ -1,6 +1,1 @@
-{
-  var a = "outer";
-  {
-    print a; // expect: outer
-  }
-}
+var baz = bar;

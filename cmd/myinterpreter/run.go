@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 )
 
 var values map[string]string
 
 func getPrintContents(line []byte) []byte {
-	s, ok := strings.CutPrefix(string(line), "print ")
+	s, ok := strings.CutPrefix(string(line), "print")
 	if !ok {
 		fmt.Printf("Print line dosent start with Print : %s\n", line)
 		return []byte{}
@@ -24,7 +25,7 @@ func getPrintContents(line []byte) []byte {
 
 func isPrintStmt(stmt []byte) bool {
 	stmtString := string(stmt)
-	return strings.HasPrefix(stmtString, "print ")
+	return strings.HasPrefix(stmtString, "print")
 }
 
 func readLines(fileContent []byte) [][]byte {
@@ -53,8 +54,12 @@ func isVarDeclaration(stmt []byte) bool {
 func getVarDeclaration(stmt []byte) (string, string) {
 	stmtString := string(stmt)
 	stmtString, _ = strings.CutPrefix(stmtString, "var ")
-	key := strings.TrimSpace(strings.Split(stmtString, "=")[0])
-	value := strings.TrimSpace(strings.Split(stmtString, "=")[1])
+	split := strings.Split(stmtString, "=")
+	key := strings.TrimSpace(split[0])
+	value := "nil"
+	if len(split) == 2 {
+		value = strings.TrimSpace(split[1])
+	}
 
 	if val, ok := values[value]; ok {
 		value = val
@@ -74,6 +79,9 @@ func run(fileContents []byte) error {
 			stmt = getPrintContents(stmt)
 		} else if isVarDeclaration(stmt) {
 			key, val := getVarDeclaration(stmt)
+			if len(val) > 0 && val[0] != '"' && unicode.IsLetter(rune(val[0])) && val != "nil" {
+				return fmt.Errorf("Undefined variable '%s'", val)
+			}
 			values[key] = val
 			continue
 		}
