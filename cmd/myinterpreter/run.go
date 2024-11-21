@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"unicode"
 )
 
 var values map[string]string
@@ -51,21 +50,21 @@ func isVarDeclaration(stmt []byte) bool {
 	return strings.HasPrefix(stmtString, "var ")
 }
 
-func getVarDeclaration(stmt []byte) (string, string) {
+func getVarDeclaration(stmt []byte) {
 	stmtString := string(stmt)
 	stmtString, _ = strings.CutPrefix(stmtString, "var ")
-	split := strings.Split(stmtString, "=")
-	key := strings.TrimSpace(split[0])
-	value := "nil"
-	if len(split) == 2 {
-		value = strings.TrimSpace(split[1])
-	}
 
-	if val, ok := values[value]; ok {
-		value = val
+	pos := strings.Index(stmtString, "=")
+	val := "nil"
+	if pos == -1 {
+		pos = len(stmtString)
+	} else {
+		val = handleAssignment(stmtString[pos+1:])
 	}
+	key := strings.TrimSpace(stmtString[:pos])
 
-	return key, value
+	// fmt.Printf("Key : %s, Value : %s\n", key, val)
+	values[key] = val
 }
 
 func run(fileContents []byte) error {
@@ -78,12 +77,12 @@ func run(fileContents []byte) error {
 			printStmt = true
 			stmt = getPrintContents(stmt)
 		} else if isVarDeclaration(stmt) {
-			key, val := getVarDeclaration(stmt)
-			if len(val) > 0 && val[0] != '"' && unicode.IsLetter(rune(val[0])) && val != "nil" {
-				return fmt.Errorf("Undefined variable '%s'", val)
-			}
-			values[key] = val
+			getVarDeclaration(stmt)
 			continue
+		}
+
+		if strings.Contains(string(stmt), "=") {
+			handleAssignment(string(stmt))
 		}
 
 		if len(stmt) == 0 {
@@ -101,4 +100,24 @@ func run(fileContents []byte) error {
 		}
 	}
 	return nil
+}
+
+func handleAssignment(stmt string) string {
+	if strings.Contains(stmt, "=") {
+		pos := strings.Index(stmt, "=")
+
+		key := strings.TrimSpace(stmt[:pos])
+		val := handleAssignment(stmt[pos+1:])
+
+		// fmt.Printf("Key : %s, Value : %s\n", key, val)
+		values[key] = val
+		return val
+	} else {
+		val, err := evaluate([]byte(strings.TrimSpace(stmt)))
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		return fmt.Sprint(val)
+	}
 }
