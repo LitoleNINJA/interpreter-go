@@ -123,6 +123,9 @@ func handleAssignment(stmt string) string {
 			val = fmt.Sprint(evalVal)
 		} else if mapVal, ok := values[val]; ok {
 			val = mapVal
+		} else if val[0] != '"' {
+			fmt.Fprintf(os.Stderr, "undefined variable '%s'\n", val)
+			os.Exit(70)
 		}
 
 		return val
