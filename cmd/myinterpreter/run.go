@@ -125,7 +125,7 @@ func handleAssignment(stmt string) string {
 		} else if mapVal, ok := values[val]; ok {
 			val = mapVal
 		} else if unicode.IsLetter(rune(val[0])) {
-			fmt.Fprintf(os.Stderr, "undefined variable '%s'\n", val)
+			// fmt.Fprintf(os.Stderr, "undefined variable '%s'\n", val)
 			os.Exit(70)
 		}
 
