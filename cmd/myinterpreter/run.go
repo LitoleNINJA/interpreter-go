@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 )
 
 var values map[string]string
@@ -123,7 +124,7 @@ func handleAssignment(stmt string) string {
 			val = fmt.Sprint(evalVal)
 		} else if mapVal, ok := values[val]; ok {
 			val = mapVal
-		} else if val[0] != '"' {
+		} else if unicode.IsLetter(rune(val[0])) {
 			fmt.Fprintf(os.Stderr, "undefined variable '%s'\n", val)
 			os.Exit(70)
 		}
