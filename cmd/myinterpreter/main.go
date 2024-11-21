@@ -136,7 +136,7 @@ func main() {
 	case "run":
 		err := run(fileContents)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[line %d] %v\n", line, err)
+			// fmt.Fprintf(os.Stderr, "[line %d] %v\n", line, err)
 			os.Exit(70)
 		}
 	default:

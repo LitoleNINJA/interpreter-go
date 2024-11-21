@@ -51,7 +51,7 @@ func isVarDeclaration(stmt []byte) bool {
 	return strings.HasPrefix(stmtString, "var ")
 }
 
-func getVarDeclaration(stmt []byte) {
+func getVarDeclaration(stmt []byte) error {
 	stmtString := string(stmt)
 	stmtString, _ = strings.CutPrefix(stmtString, "var ")
 
@@ -60,12 +60,19 @@ func getVarDeclaration(stmt []byte) {
 	if pos == -1 {
 		pos = len(stmtString)
 	} else {
-		val = handleAssignment(stmtString[pos+1:])
+		finalVal, err := handleAssignment(stmtString[pos+1:])
+		if err != nil {
+			return err
+		}
+
+		val = finalVal
 	}
 	key := strings.TrimSpace(stmtString[:pos])
 
 	// fmt.Printf("Key : %s, Value : %s\n", key, val)
 	values[key] = val
+
+	return nil
 }
 
 func run(fileContents []byte) error {
@@ -78,7 +85,10 @@ func run(fileContents []byte) error {
 			printStmt = true
 			stmt = getPrintContents(stmt)
 		} else if isVarDeclaration(stmt) {
-			getVarDeclaration(stmt)
+			err := getVarDeclaration(stmt)
+			if err != nil {
+				return err
+			}
 			continue
 		}
 
@@ -103,31 +113,34 @@ func run(fileContents []byte) error {
 	return nil
 }
 
-func handleAssignment(stmt string) string {
+func handleAssignment(stmt string) (string, error) {
 	if strings.Contains(stmt, "=") {
 		pos := strings.Index(stmt, "=")
 
 		key := strings.TrimSpace(stmt[:pos])
-		val := handleAssignment(stmt[pos+1:])
+		val, err := handleAssignment(stmt[pos+1:])
+		if err != nil {
+			return val, err
+		}
 
 		// fmt.Printf("Key : %s, Value : %s\n", key, val)
 		values[key] = val
-		return val
+		return val, nil
 	} else {
 		val := strings.TrimSpace(stmt)
 		if strings.ContainsAny(val, "+-*/()") {
 			evalVal, err := evaluate([]byte(val))
 			if err != nil {
-				fmt.Println(err)
+				return val, err
 			}
 
 			val = fmt.Sprint(evalVal)
 		} else if mapVal, ok := values[val]; ok {
 			val = mapVal
 		} else if unicode.IsLetter(rune(val[0])) {
-			os.Exit(70)
+			return val, fmt.Errorf("Undefined variable '%s'", val)
 		}
 
-		return val
+		return val, nil
 	}
 }
