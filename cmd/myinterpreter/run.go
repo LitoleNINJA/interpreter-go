@@ -63,7 +63,7 @@ func getVarDeclaration(stmt []byte) {
 	}
 	key := strings.TrimSpace(stmtString[:pos])
 
-	// fmt.Printf("Key : %s, Value : %s\n", key, val)
+	fmt.Printf("Key : %s, Value : %s\n", key, val)
 	values[key] = val
 }
 
@@ -109,15 +109,20 @@ func handleAssignment(stmt string) string {
 		key := strings.TrimSpace(stmt[:pos])
 		val := handleAssignment(stmt[pos+1:])
 
-		// fmt.Printf("Key : %s, Value : %s\n", key, val)
+		fmt.Printf("Key : %s, Value : %s\n", key, val)
 		values[key] = val
 		return val
 	} else {
-		val, err := evaluate([]byte(strings.TrimSpace(stmt)))
-		if err != nil {
-			fmt.Println(err)
+		val := strings.TrimSpace(stmt)
+		if strings.ContainsAny(val, "+-*/()") {
+			evalVal, err := evaluate([]byte(val))
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			val = fmt.Sprint(evalVal)
 		}
 
-		return fmt.Sprint(val)
+		return val
 	}
 }
