@@ -152,11 +152,7 @@ func tokenizeFile(fileContents []byte) []Token {
 
 	tokens := []Token{}
 	for i := 0; i < len(fileContentString); i++ {
-		newToken, err := addToken(string(fileContentString[i]), &i)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "[line %d] %v\n", line, err)
-		}
-		// fmt.Printf("Token : %+v\n", newToken)
+		newToken := addToken(string(fileContentString[i]), &i)
 		if newToken != (Token{}) {
 			tokens = append(tokens, newToken)
 		}
@@ -234,7 +230,7 @@ func addToken(ch string, index *int) (Token, error) {
 		str, err := readString(index)
 		if err != nil {
 			exitCode = 65
-			return token, err
+			break
 		} else {
 			token.setToken(STRING, `"`+str+`"`, str)
 		}
@@ -258,12 +254,12 @@ func addToken(ch string, index *int) (Token, error) {
 			}
 			*index--
 		} else {
+			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", line, ch)
 			exitCode = 65
-			return token, fmt.Errorf("Error: Unexpected character: %s", ch)
 		}
 	}
 
-	return token, nil
+	return token
 }
 
 func nextToken(index int) string {
