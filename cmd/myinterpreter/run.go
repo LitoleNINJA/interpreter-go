@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 )
 
 var values map[string]string
@@ -113,11 +114,20 @@ func handleAssignment(stmt string) string {
 		values[key] = val
 		return val
 	} else {
-		val, err := evaluate([]byte(strings.TrimSpace(stmt)))
-		if err != nil {
-			fmt.Println(err)
+		val := strings.TrimSpace(stmt)
+		if strings.ContainsAny(val, "+-*/()") {
+			evalVal, err := evaluate([]byte(val))
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			val = fmt.Sprint(evalVal)
+		} else if mapVal, ok := values[val]; ok {
+			val = mapVal
+		} else if unicode.IsLetter(rune(val[0])) {
+			os.Exit(70)
 		}
 
-		return fmt.Sprint(val)
+		return val
 	}
 }
