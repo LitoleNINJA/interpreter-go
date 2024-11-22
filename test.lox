@@ -1,3 +1,8 @@
-var quz = 50;
-var result = (quz + baz) / bar;
-print result;
+{
+    var foo = "before";
+    print foo;
+}
+{
+    var foo = "after";
+    print foo;
+}
