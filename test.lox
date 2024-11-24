@@ -1,1 +1,6 @@
-var baz = bar;
+{
+    var bar = 11;
+    var world = 11;
+    {
+        print bar + world;
+    }

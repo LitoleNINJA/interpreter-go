@@ -129,15 +129,15 @@ func main() {
 		val, err := evaluate(fileContents)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[line %d] %v\n", line, err)
-			os.Exit(70)
+			os.Exit(exitCode)
 		}
 
 		fmt.Println(val)
 	case "run":
 		err := run(fileContents)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[line %d] %v\n", line, err)
-			os.Exit(70)
+			fmt.Fprintf(os.Stderr, "[line %d] %v\n", lineNumber, err)
+			os.Exit(exitCode)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
