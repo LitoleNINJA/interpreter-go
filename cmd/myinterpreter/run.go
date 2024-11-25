@@ -203,7 +203,6 @@ func handleBlock() error {
 		stmt := lines[lineNumber]
 
 		if isBlockEnd(stmt) {
-			fmt.Printf("End : %d\n", lineNumber)
 			for _, line := range blockLines {
 				err := handleStmt(line)
 				if err != nil {
