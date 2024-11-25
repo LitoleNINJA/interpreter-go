@@ -261,7 +261,7 @@ func handleAssignment(stmt string) (string, error) {
 }
 
 func handleBlock() error {
-	// localValues := make(map[string]string)
+	localValues := make(map[string]string)
 
 	for {
 		lineNumber++
