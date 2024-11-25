@@ -209,6 +209,7 @@ func handleAssignment(stmt string) (string, error) {
 		} else if mapVal, ok := values[val]; ok {
 			val = mapVal
 		} else if unicode.IsLetter(rune(val[0])) {
+			exitCode = 70
 			return val, fmt.Errorf("Undefined variable '%s'", val)
 		}
 
