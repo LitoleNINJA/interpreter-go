@@ -210,8 +210,9 @@ func handleAssignment(stmt string) (string, error) {
 			val = fmt.Sprint(evalVal)
 		} else if mapVal, ok := values[val]; ok {
 			val = mapVal
-		} else if unicode.IsLetter(rune(val[0])) {
+		} else if unicode.IsLetter(rune(val[0])) && val != "true" && val != "false" {
 			exitCode = 70
+			fmt.Printf("Val : %s, MapVal : %s\n", val, values[val])
 			return val, fmt.Errorf("Undefined variable '%s'", val)
 		}
 
