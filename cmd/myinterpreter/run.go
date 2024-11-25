@@ -114,6 +114,7 @@ func run(fileContents []byte) error {
 	// fmt.Println(lines)
 
 	if err := checkBracketBalanced(lines); err != nil {
+		exitCode = 65
 		return err
 	}
 
