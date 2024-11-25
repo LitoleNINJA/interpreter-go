@@ -89,11 +89,34 @@ func isBlockEnd(stmt []byte) bool {
 	return stmtString == "}"
 }
 
+func checkBracketBalanced(lines [][]byte) error {
+	openingBracket := 0
+	closingBracket := 0
+
+	for _, stmt := range lines {
+		if isBlockStart(stmt) {
+			openingBracket++
+		} else if isBlockEnd(stmt) {
+			closingBracket++
+		}
+	}
+
+	if openingBracket != closingBracket {
+		return fmt.Errorf("Error at end: Expect '}'")
+	}
+	return nil
+}
+
 func run(fileContents []byte) error {
 	lineNumber = 0
 	lines = readLines(fileContents)
 	values = make(map[string]string)
 	// fmt.Println(lines)
+
+	if err := checkBracketBalanced(lines); err != nil {
+		return err
+	}
+
 	for {
 		if lineNumber >= len(lines) {
 			break
@@ -125,14 +148,12 @@ func handleStmt(stmt []byte) error {
 
 		return nil
 	} else if isBlockStart(stmt) {
-		// fmt.Printf("Start Pos : %d\n", lineNumber)
 		err := handleBlock()
 		if err != nil {
 			exitCode = 65
 			return err
 		}
 
-		// fmt.Printf("End Pos : %d\n", lineNumber)
 		return nil
 	}
 
@@ -192,8 +213,7 @@ func handleAssignment(stmt string) (string, error) {
 
 func handleBlock() error {
 	// localValues := make(map[string]string)
-	blockLines := make([][]byte, 0)
-	
+
 	for {
 		lineNumber++
 		if lineNumber >= len(lines) {
@@ -203,22 +223,12 @@ func handleBlock() error {
 		stmt := lines[lineNumber]
 
 		if isBlockEnd(stmt) {
-			for _, line := range blockLines {
-				err := handleStmt(line)
-				if err != nil {
-					return err
-				}
-			}
 			return nil
 		}
 
-		if isPrintStmt(stmt) {
-			blockLines = append(blockLines, stmt)
-		} else {
-			err := handleStmt(stmt)
-			if err != nil {
-				return err
-			}
+		err := handleStmt(stmt)
+		if err != nil {
+			return err
 		}
 	}
 
