@@ -40,8 +40,16 @@ func readLines(fileContent []byte) [][]byte {
 
 		if ch == '\n' {
 			// Only add newline if inside a string or if current statement is empty
-			if len(line) > 0 {
+			if len(line) > 0 && isString {
 				line = append(line, ' ')
+			} else if len(line) > 0 {
+				trimmed := []byte(strings.TrimSpace(string(line)))
+				if len(trimmed) > 0 {
+					// fmt.Printf("Line : %s, Len %d\n", trimmed, len(trimmed))
+					lines = append(lines, trimmed)
+				}
+				line = []byte{}
+				continue
 			}
 			continue
 		}
@@ -53,6 +61,7 @@ func readLines(fileContent []byte) [][]byte {
 	if len(line) > 0 {
 		trimmed := []byte(strings.TrimSpace(string(line)))
 		if len(trimmed) > 0 {
+			// fmt.Printf("Line : %s, Len %d\n", trimmed, len(trimmed))
 			lines = append(lines, trimmed)
 		}
 	}
