@@ -14,7 +14,7 @@ func readLines(fileContent []byte) [][]byte {
 	var lines [][]byte
 	line := make([]byte, 0)
 	for i := 0; i <= len(fileContent); i++ {
-		if i == len(fileContent) || fileContent[i] == 10 {
+		if i == len(fileContent) || fileContent[i] == 10 || fileContent[i] == 59 {
 			line = []byte(strings.TrimSpace(string(line)))
 			// fmt.Printf("Line : %s\n", line)
 			lines = append(lines, line)
@@ -212,6 +212,7 @@ func handleAssignment(stmt string) (string, error) {
 			val = mapVal
 		} else if unicode.IsLetter(rune(val[0])) && val != "true" && val != "false" {
 			exitCode = 70
+			fmt.Printf("Val : %s, MapVal : %s\n", val, values[val])
 			return val, fmt.Errorf("Undefined variable '%s'", val)
 		}
 
