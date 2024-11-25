@@ -108,7 +108,7 @@ func checkBracketBalanced(lines [][]byte) error {
 }
 
 func run(fileContents []byte) error {
-	lineNumber = 1
+	lineNumber = 0
 	lines = readLines(fileContents)
 	values = make(map[string]string)
 	// fmt.Println(lines)
