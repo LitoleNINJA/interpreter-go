@@ -108,7 +108,7 @@ func checkBracketBalanced(lines [][]byte) error {
 }
 
 func run(fileContents []byte) error {
-	lineNumber = 0
+	lineNumber = 1
 	lines = readLines(fileContents)
 	values = make(map[string]string)
 	// fmt.Println(lines)
@@ -162,9 +162,13 @@ func handleStmt(stmt []byte) error {
 		handleAssignment(string(stmt))
 	}
 
-	if len(stmt) == 0 && printStmt {
-		exitCode = 65
-		return fmt.Errorf("empty print stmt")
+	if len(stmt) == 0 {
+		if printStmt {
+			exitCode = 65
+			return fmt.Errorf("empty print stmt")
+		} else {
+			return nil
+		}
 	}
 
 	// fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
