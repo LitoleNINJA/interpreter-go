@@ -177,6 +177,7 @@ func primary(parser *Parser) (Expr, error) {
 		}, err
 	} else if parser.match(IDENTIFIER) {
 		if val, ok := values[parser.previous().lexeme]; !ok {
+			exitCode = 70
 			return &Literal{}, fmt.Errorf("Undefined variable '%s'.", parser.previous().lexeme)
 		} else {
 			if strings.ContainsAny(val, "+-*/") {
