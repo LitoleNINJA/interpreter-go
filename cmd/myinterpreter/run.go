@@ -2,12 +2,30 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"unicode"
 )
 
 var values map[string]string
+var lines [][]byte
+var lineNumber int
+
+func readLines(fileContent []byte) [][]byte {
+	var lines [][]byte
+	line := make([]byte, 0)
+	for i := 0; i <= len(fileContent); i++ {
+		if i == len(fileContent) || fileContent[i] == 10 {
+			line = []byte(strings.TrimSpace(string(line)))
+			// fmt.Printf("Line : %s\n", line)
+			lines = append(lines, line)
+			line = make([]byte, 0)
+		} else {
+			line = append(line, fileContent[i])
+		}
+	}
+
+	return lines
+}
 
 func getPrintContents(line []byte) []byte {
 	s, ok := strings.CutPrefix(string(line), "print")
@@ -15,6 +33,7 @@ func getPrintContents(line []byte) []byte {
 		fmt.Printf("Print line dosent start with Print : %s\n", line)
 		return []byte{}
 	}
+	s, _ = strings.CutSuffix(string(s), ";")
 
 	s = strings.TrimSpace(s)
 	if val, ok := values[s]; ok {
@@ -28,77 +47,181 @@ func isPrintStmt(stmt []byte) bool {
 	return strings.HasPrefix(stmtString, "print")
 }
 
-func readLines(fileContent []byte) [][]byte {
-	var lines [][]byte
-	line := make([]byte, 0)
-	for i := 0; i < len(fileContent); i++ {
-		if fileContent[i] == 59 {
-			line = []byte(strings.TrimSpace(string(line)))
-			// fmt.Printf("Line : %s\n", line)
-			lines = append(lines, line)
-			line = make([]byte, 0)
-		} else {
-			line = append(line, fileContent[i])
-
-		}
-	}
-
-	return lines
-}
-
 func isVarDeclaration(stmt []byte) bool {
 	stmtString := string(stmt)
 	return strings.HasPrefix(stmtString, "var ")
 }
 
-func getVarDeclaration(stmt []byte) (string, string) {
+func getVarDeclaration(stmt []byte) error {
 	stmtString := string(stmt)
 	stmtString, _ = strings.CutPrefix(stmtString, "var ")
-	split := strings.Split(stmtString, "=")
-	key := strings.TrimSpace(split[0])
-	value := "nil"
-	if len(split) == 2 {
-		value = strings.TrimSpace(split[1])
-	}
+	stmtString, _ = strings.CutSuffix(stmtString, ";")
 
-	if val, ok := values[value]; ok {
-		value = val
-	}
-
-	return key, value
-}
-
-func run(fileContents []byte) error {
-	lines := readLines(fileContents)
-	values = make(map[string]string)
-	// fmt.Println(lines)
-	for _, stmt := range lines {
-		printStmt := false
-		if isPrintStmt(stmt) {
-			printStmt = true
-			stmt = getPrintContents(stmt)
-		} else if isVarDeclaration(stmt) {
-			key, val := getVarDeclaration(stmt)
-			if len(val) > 0 && val[0] != '"' && unicode.IsLetter(rune(val[0])) && val != "nil" {
-				return fmt.Errorf("Undefined variable '%s'", val)
-			}
-			values[key] = val
-			continue
-		}
-
-		if len(stmt) == 0 {
-			os.Exit(65)
-		}
-
-		// fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
-		expr, err := evaluate(stmt)
+	pos := strings.Index(stmtString, "=")
+	val := "nil"
+	if pos == -1 {
+		pos = len(stmtString)
+	} else {
+		finalVal, err := handleAssignment(stmtString[pos+1:])
 		if err != nil {
 			return err
 		}
 
-		if printStmt {
-			fmt.Println(expr)
+		val = finalVal
+	}
+	key := strings.TrimSpace(stmtString[:pos])
+
+	// fmt.Printf("Key : %s, Value : %s\n", key, val)
+	values[key] = val
+
+	return nil
+}
+
+func isBlockStart(stmt []byte) bool {
+	stmtString := strings.TrimSpace(string(stmt))
+
+	return stmtString == "{"
+}
+
+func isBlockEnd(stmt []byte) bool {
+	stmtString := strings.TrimSpace(string(stmt))
+
+	return stmtString == "}"
+}
+
+func run(fileContents []byte) error {
+	lineNumber = 0
+	lines = readLines(fileContents)
+	values = make(map[string]string)
+	// fmt.Println(lines)
+	for {
+		if lineNumber >= len(lines) {
+			break
 		}
+
+		stmt := lines[lineNumber]
+
+		err := handleStmt(stmt)
+		if err != nil {
+			return err
+		}
+
+		lineNumber++
 	}
 	return nil
+}
+
+func handleStmt(stmt []byte) error {
+	printStmt := false
+
+	if isPrintStmt(stmt) {
+		printStmt = true
+		stmt = getPrintContents(stmt)
+	} else if isVarDeclaration(stmt) {
+		err := getVarDeclaration(stmt)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	} else if isBlockStart(stmt) {
+		// fmt.Printf("Start Pos : %d\n", lineNumber)
+		err := handleBlock()
+		if err != nil {
+			exitCode = 65
+			return err
+		}
+
+		// fmt.Printf("End Pos : %d\n", lineNumber)
+		return nil
+	}
+
+	if strings.Contains(string(stmt), "=") {
+		handleAssignment(string(stmt))
+	}
+
+	if len(stmt) == 0 && printStmt {
+		exitCode = 65
+		return fmt.Errorf("empty print stmt")
+	}
+
+	// fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
+	expr, err := evaluate(stmt)
+	if err != nil {
+		return err
+	}
+
+	if printStmt {
+		fmt.Println(expr)
+	}
+
+	return nil
+}
+
+func handleAssignment(stmt string) (string, error) {
+	if strings.Contains(stmt, "=") {
+		pos := strings.Index(stmt, "=")
+
+		key := strings.TrimSpace(stmt[:pos])
+		val, err := handleAssignment(stmt[pos+1:])
+		if err != nil {
+			return val, err
+		}
+
+		// fmt.Printf("Key : %s, Value : %s\n", key, val)
+		values[key] = val
+		return val, nil
+	} else {
+		val := strings.TrimSpace(stmt)
+		if strings.ContainsAny(val, "+-*/()") {
+			evalVal, err := evaluate([]byte(val))
+			if err != nil {
+				return val, err
+			}
+
+			val = fmt.Sprint(evalVal)
+		} else if mapVal, ok := values[val]; ok {
+			val = mapVal
+		} else if unicode.IsLetter(rune(val[0])) {
+			return val, fmt.Errorf("Undefined variable '%s'", val)
+		}
+
+		return val, nil
+	}
+}
+
+func handleBlock() error {
+	// localValues := make(map[string]string)
+	blockLines := make([][]byte, 0)
+	
+	for {
+		lineNumber++
+		if lineNumber >= len(lines) {
+			break
+		}
+
+		stmt := lines[lineNumber]
+
+		if isBlockEnd(stmt) {
+			fmt.Printf("End : %d\n", lineNumber)
+			for _, line := range blockLines {
+				err := handleStmt(line)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+
+		if isPrintStmt(stmt) {
+			blockLines = append(blockLines, stmt)
+		} else {
+			err := handleStmt(stmt)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return fmt.Errorf("Error at end: Expect '}' .")
 }
