@@ -140,6 +140,9 @@ func main() {
 		err := run(fileContents)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[line %d] %v\n", lineNumber, err)
+			if exitCode == 0 {
+				exitCode = 70
+			}
 			os.Exit(exitCode)
 		}
 	default:
