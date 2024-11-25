@@ -9,21 +9,62 @@ import (
 var values map[string]string
 var lines [][]byte
 var lineNumber int
+var isString bool
 
 func readLines(fileContent []byte) [][]byte {
 	var lines [][]byte
 	line := make([]byte, 0)
-	for i := 0; i <= len(fileContent); i++ {
-		if i == len(fileContent) || fileContent[i] == 10 {
-			line = []byte(strings.TrimSpace(string(line)))
-			// fmt.Printf("Line : %s\n", line)
-			lines = append(lines, line)
-			line = make([]byte, 0)
-		} else {
-			line = append(line, fileContent[i])
+	for i := 0; i < len(fileContent); i++ {
+		ch := fileContent[i]
+
+		if ch == '"' {
+			isString = !isString
+			line = append(line, ch)
+			continue
 		}
+		if isString {
+			line = append(line, ch)
+			continue
+		}
+
+		if ch == ';' {
+			line = append(line, ch)
+			trimmed := []byte(strings.TrimSpace(string(line)))
+			if len(trimmed) > 0 {
+				// fmt.Printf("Line : %s, Len %d\n", trimmed, len(trimmed))
+				lines = append(lines, trimmed)
+			}
+			line = []byte{}
+			continue
+		}
+
+		if ch == '\n' {
+			// Only add newline if inside a string or if current statement is empty
+			if len(line) > 0 && isString {
+				line = append(line, ' ')
+			} else if len(line) > 0 {
+				trimmed := []byte(strings.TrimSpace(string(line)))
+				if len(trimmed) > 0 {
+					// fmt.Printf("Line : %s, Len %d\n", trimmed, len(trimmed))
+					lines = append(lines, trimmed)
+				}
+				line = []byte{}
+				continue
+			}
+			continue
+		}
+
+		line = append(line, ch)
 	}
 
+	// Handle last statement if it exists
+	if len(line) > 0 {
+		trimmed := []byte(strings.TrimSpace(string(line)))
+		if len(trimmed) > 0 {
+			// fmt.Printf("Line : %s, Len %d\n", trimmed, len(trimmed))
+			lines = append(lines, trimmed)
+		}
+	}
 	return lines
 }
 
@@ -89,11 +130,35 @@ func isBlockEnd(stmt []byte) bool {
 	return stmtString == "}"
 }
 
+func checkBracketBalanced(lines [][]byte) error {
+	openingBracket := 0
+	closingBracket := 0
+
+	for _, stmt := range lines {
+		if isBlockStart(stmt) {
+			openingBracket++
+		} else if isBlockEnd(stmt) {
+			closingBracket++
+		}
+	}
+
+	if openingBracket != closingBracket {
+		return fmt.Errorf("Error at end: Expect '}'")
+	}
+	return nil
+}
+
 func run(fileContents []byte) error {
 	lineNumber = 0
 	lines = readLines(fileContents)
 	values = make(map[string]string)
 	// fmt.Println(lines)
+
+	if err := checkBracketBalanced(lines); err != nil {
+		exitCode = 65
+		return err
+	}
+
 	for {
 		if lineNumber >= len(lines) {
 			break
@@ -125,14 +190,12 @@ func handleStmt(stmt []byte) error {
 
 		return nil
 	} else if isBlockStart(stmt) {
-		// fmt.Printf("Start Pos : %d\n", lineNumber)
 		err := handleBlock()
 		if err != nil {
 			exitCode = 65
 			return err
 		}
 
-		// fmt.Printf("End Pos : %d\n", lineNumber)
 		return nil
 	}
 
@@ -140,9 +203,13 @@ func handleStmt(stmt []byte) error {
 		handleAssignment(string(stmt))
 	}
 
-	if len(stmt) == 0 && printStmt {
-		exitCode = 65
-		return fmt.Errorf("empty print stmt")
+	if len(stmt) == 0 {
+		if printStmt {
+			exitCode = 65
+			return fmt.Errorf("empty print stmt")
+		} else {
+			return nil
+		}
 	}
 
 	// fmt.Printf("Eval : %s, Len : %d\n", stmt, len(stmt))
@@ -159,6 +226,8 @@ func handleStmt(stmt []byte) error {
 }
 
 func handleAssignment(stmt string) (string, error) {
+	stmt, _ = strings.CutSuffix(stmt, ";")
+
 	if strings.Contains(stmt, "=") {
 		pos := strings.Index(stmt, "=")
 
@@ -182,7 +251,8 @@ func handleAssignment(stmt string) (string, error) {
 			val = fmt.Sprint(evalVal)
 		} else if mapVal, ok := values[val]; ok {
 			val = mapVal
-		} else if unicode.IsLetter(rune(val[0])) {
+		} else if unicode.IsLetter(rune(val[0])) && val != "true" && val != "false" {
+			exitCode = 70
 			return val, fmt.Errorf("Undefined variable '%s'", val)
 		}
 
@@ -192,8 +262,7 @@ func handleAssignment(stmt string) (string, error) {
 
 func handleBlock() error {
 	// localValues := make(map[string]string)
-	blockLines := make([][]byte, 0)
-	
+
 	for {
 		lineNumber++
 		if lineNumber >= len(lines) {
@@ -203,23 +272,12 @@ func handleBlock() error {
 		stmt := lines[lineNumber]
 
 		if isBlockEnd(stmt) {
-			fmt.Printf("End : %d\n", lineNumber)
-			for _, line := range blockLines {
-				err := handleStmt(line)
-				if err != nil {
-					return err
-				}
-			}
 			return nil
 		}
 
-		if isPrintStmt(stmt) {
-			blockLines = append(blockLines, stmt)
-		} else {
-			err := handleStmt(stmt)
-			if err != nil {
-				return err
-			}
+		err := handleStmt(stmt)
+		if err != nil {
+			return err
 		}
 	}
 
