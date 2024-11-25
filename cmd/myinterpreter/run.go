@@ -9,21 +9,53 @@ import (
 var values map[string]string
 var lines [][]byte
 var lineNumber int
+var isString bool
 
 func readLines(fileContent []byte) [][]byte {
 	var lines [][]byte
 	line := make([]byte, 0)
-	for i := 0; i <= len(fileContent); i++ {
-		if i == len(fileContent) || fileContent[i] == 10 || fileContent[i] == 59 {
-			line = []byte(strings.TrimSpace(string(line)))
-			// fmt.Printf("Line : %s\n", line)
-			lines = append(lines, line)
-			line = make([]byte, 0)
-		} else {
-			line = append(line, fileContent[i])
+	for i := 0; i < len(fileContent); i++ {
+		ch := fileContent[i]
+
+		if ch == '"' {
+			isString = !isString
+			line = append(line, ch)
+			continue
 		}
+		if isString {
+			line = append(line, ch)
+			continue
+		}
+
+		if ch == ';' {
+			line = append(line, ch)
+			trimmed := []byte(strings.TrimSpace(string(line)))
+			if len(trimmed) > 0 {
+				// fmt.Printf("Line : %s, Len %d\n", trimmed, len(trimmed))
+				lines = append(lines, trimmed)
+			}
+			line = []byte{}
+			continue
+		}
+
+		if ch == '\n' {
+			// Only add newline if inside a string or if current statement is empty
+			if len(line) > 0 {
+				line = append(line, ' ')
+			}
+			continue
+		}
+
+		line = append(line, ch)
 	}
 
+	// Handle last statement if it exists
+	if len(line) > 0 {
+		trimmed := []byte(strings.TrimSpace(string(line)))
+		if len(trimmed) > 0 {
+			lines = append(lines, trimmed)
+		}
+	}
 	return lines
 }
 

@@ -1,1 +1,12 @@
-var bar = world;
+print true != false;
+
+ print "31
+ 22
+ 43
+ ";
+
+ print "There should be an empty line above this.";
+
+ print "(" + "" + ")";
+
+ print "non-ascii: ॐ";
