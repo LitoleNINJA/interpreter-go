@@ -185,6 +185,8 @@ func handleStmt(stmt []byte) error {
 }
 
 func handleAssignment(stmt string) (string, error) {
+	stmt, _ = strings.CutSuffix(stmt, ";")
+
 	if strings.Contains(stmt, "=") {
 		pos := strings.Index(stmt, "=")
 
