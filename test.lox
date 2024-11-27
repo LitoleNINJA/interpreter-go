@@ -1,8 +1,13 @@
 {
-    var world = "before";
-    {
-        var world = "after";
-        print world;
-    }
+  var quz = "outer quz";
+  var world = "outer world";
+  {
+    quz = "modified quz";
+    var world = "inner world";
+    print quz;
     print world;
+  }
+  print quz;
+  print world;
 }
+print world;

@@ -6,10 +6,10 @@ import (
 	"unicode"
 )
 
-var values map[string]string
 var lines [][]byte
 var lineNumber int
 var isString bool
+var currentScope *Scope
 
 func readLines(fileContent []byte) [][]byte {
 	var lines [][]byte
@@ -77,7 +77,7 @@ func getPrintContents(line []byte) []byte {
 	s, _ = strings.CutSuffix(string(s), ";")
 
 	s = strings.TrimSpace(s)
-	if val, ok := values[s]; ok {
+	if val, ok := currentScope.getScopeValue(s); ok {
 		s = val
 	}
 	return []byte(s)
@@ -113,7 +113,12 @@ func getVarDeclaration(stmt []byte) error {
 	key := strings.TrimSpace(stmtString[:pos])
 
 	// fmt.Printf("Key : %s, Value : %s\n", key, val)
-	values[key] = val
+	// Try to find and update existing variable
+	if success := currentScope.assignScopeValue(key, val); !success {
+		// If variable doesn't exist anywhere, define it in current scope
+		fmt.Printf("Not found : %s, %s\n", key, val)
+		currentScope.setScopeValue(key, val)
+	}
 
 	return nil
 }
@@ -151,7 +156,7 @@ func checkBracketBalanced(lines [][]byte) error {
 func run(fileContents []byte) error {
 	lineNumber = 0
 	lines = readLines(fileContents)
-	values = make(map[string]string)
+	currentScope = NewScope(nil)
 	// fmt.Println(lines)
 
 	if err := checkBracketBalanced(lines); err != nil {
@@ -238,7 +243,12 @@ func handleAssignment(stmt string) (string, error) {
 		}
 
 		// fmt.Printf("Key : %s, Value : %s\n", key, val)
-		values[key] = val
+		// Try to find and update existing variable
+		if success := currentScope.assignScopeValue(key, val); !success {
+			// If variable doesn't exist anywhere, define it in current scope
+			fmt.Printf("Not found : %s, %s\n", key, val)
+			currentScope.setScopeValue(key, val)
+		}
 		return val, nil
 	} else {
 		val := strings.TrimSpace(stmt)
@@ -248,8 +258,12 @@ func handleAssignment(stmt string) (string, error) {
 				return val, err
 			}
 
-			val = fmt.Sprint(evalVal)
-		} else if mapVal, ok := values[val]; ok {
+			if strings.HasPrefix(val, `"`) {
+				val = `"` + fmt.Sprint(evalVal) + `"`
+			} else {
+				val = fmt.Sprint(evalVal)
+			}
+		} else if mapVal, ok := currentScope.getScopeValue(val); ok {
 			val = mapVal
 		} else if unicode.IsLetter(rune(val[0])) && val != "true" && val != "false" {
 			exitCode = 70
@@ -261,7 +275,9 @@ func handleAssignment(stmt string) (string, error) {
 }
 
 func handleBlock() error {
-	localValues := make(map[string]string)
+	// push new scope
+	enclosingScope := currentScope
+	currentScope = NewScope(enclosingScope)
 
 	for {
 		lineNumber++
@@ -272,6 +288,8 @@ func handleBlock() error {
 		stmt := lines[lineNumber]
 
 		if isBlockEnd(stmt) {
+			// pop scope
+			currentScope = enclosingScope
 			return nil
 		}
 
