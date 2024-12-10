@@ -29,3 +29,18 @@ func (scope *Scope) getScopeValue(key string) (string, bool) {
 
 	return "", false
 }
+
+func (scope *Scope) assignScopeValue(key string, val string) bool {
+	// check if key exists in current scope
+	if _, ok := scope.getScopeValue(key); ok {
+		// fmt.Printf("%s found in scope %+v\n", key, scope)
+		scope.setScopeValue(key, val)
+	}
+
+	// if not found, check enclosing
+	if scope.enclosing != nil {
+		return scope.enclosing.assignScopeValue(key, val)
+	}
+
+	return false
+}
