@@ -17,6 +17,11 @@ func (scope *Scope) setScopeValue(key string, val string) {
 }
 
 func (scope *Scope) getScopeValue(key string) (string, bool) {
+	// check for nil scope
+	if scope == nil {
+		return "", false
+	}
+
 	// check current scope
 	if val, ok := scope.values[key]; ok {
 		return val, true
