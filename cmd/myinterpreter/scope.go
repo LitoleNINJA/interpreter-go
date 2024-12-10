@@ -17,6 +17,11 @@ func (scope *Scope) setScopeValue(key string, val string) {
 }
 
 func (scope *Scope) getScopeValue(key string) (string, bool) {
+	// check for nil scope
+	if scope == nil {
+		return "", false
+	}
+
 	// check current scope
 	if val, ok := scope.values[key]; ok {
 		return val, true
@@ -31,13 +36,13 @@ func (scope *Scope) getScopeValue(key string) (string, bool) {
 }
 
 func (scope *Scope) assignScopeValue(key string, val string) bool {
-	// check if key exists in current scope 
+	// check if key exists in current scope
 	if _, ok := scope.getScopeValue(key); ok {
+		// fmt.Printf("%s found in scope %+v\n", key, scope)
 		scope.setScopeValue(key, val)
-		return true
 	}
 
-	// if not found, check enclosing 
+	// if not found, check enclosing
 	if scope.enclosing != nil {
 		return scope.enclosing.assignScopeValue(key, val)
 	}
