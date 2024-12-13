@@ -27,7 +27,7 @@ func readLines(fileContent []byte) [][]byte {
 			continue
 		}
 
-		if ch == ';' {
+		if ch == ';' || ch == '}' {
 			line = append(line, ch)
 			trimmed := []byte(strings.TrimSpace(string(line)))
 			if len(trimmed) > 0 {
@@ -179,17 +179,16 @@ func isElseStmt(stmt []byte) bool {
 	return strings.HasPrefix(stmtString, "else ") || strings.HasPrefix(stmtString, "} else")
 }
 
-func getElseStmt(stmt []byte) ([]byte, int, error) {
+func getElseStmt(stmt []byte) ([]byte, bool, error) {
 	// fmt.Printf("stmt : %s\n", stmt)
+	// TODO : instead of a new type, maybe end all lines after } is seen
+
 	if s, ok := strings.CutPrefix(string(stmt), "else "); ok {
-		return []byte(strings.TrimSpace(s)), 1, nil
+		return []byte(strings.TrimSpace(s)), strings.HasPrefix(s, "{"), nil
 	}
 
-	if s, ok := strings.CutPrefix(string(stmt), "} else "); ok {
-		return []byte(strings.TrimSpace(s)), 2, nil
-	}
 
-	return []byte{}, -1, fmt.Errorf("else stmt not found")
+	return []byte{}, false, fmt.Errorf("else stmt not found")
 }
 
 func checkBracketBalanced(lines [][]byte) error {
@@ -215,7 +214,6 @@ func run(fileContents []byte) error {
 	lineNumber = 0
 	lines = readLines(fileContents)
 	currentScope = NewScope(nil)
-	// fmt.Println(lines)
 
 	if err := checkBracketBalanced(lines); err != nil {
 		exitCode = 65
@@ -253,23 +251,14 @@ func handleStmt(stmt []byte) error {
 
 		return nil
 	} else if isBlockStart(stmt) {
-		isBlockEnd, err := handleBlock()
-		if err != nil{
-			return err
-		}
-
-		if !isBlockEnd {
-			stmt = lines[lineNumber]
-		} else {
-			return nil
-		}
+		return handleBlock()
 	} else if isIfStmt(stmt) {
 		return handleIfBlock(stmt)
 	}
 
 	if isElseStmt(stmt) {
 		_, t, _ := getElseStmt(stmt)
-		if t == 2 {
+		if t {
 			for lineNumber < len(lines) && !isBlockEnd(lines[lineNumber]) {
 				// fmt.Printf("skipping else stmt : %s\n", lines[lineNumber])
 				lineNumber++
@@ -347,7 +336,7 @@ func handleAssignment(stmt string) (string, error) {
 	}
 }
 
-func handleBlock() (bool, error) {
+func handleBlock() error {
 	// push new scope
 	enclosingScope := currentScope
 	currentScope = NewScope(enclosingScope)
@@ -360,19 +349,19 @@ func handleBlock() (bool, error) {
 
 		stmt := lines[lineNumber]
 
-		if isBlockEnd(stmt) || isElseStmt(stmt) {
+		if isBlockEnd(stmt) {
 			// pop scope
 			currentScope = enclosingScope
-			return !isElseStmt(stmt), nil
+			return nil
 		} 
 
 		err := handleStmt(stmt)
 		if err != nil {
-			return false, err
+			return err
 		}
 	}
 
-	return false, fmt.Errorf("Error at end: Expect '}' .")
+	return fmt.Errorf("Error at end: Expect '}' .")
 }
 
 func handleIfBlock(stmt []byte) error {
@@ -400,14 +389,19 @@ func handleIfBlock(stmt []byte) error {
 		for lineNumber < len(lines) && (!isElseStmt(lines[lineNumber]) && !isBlockEnd(lines[lineNumber])) {
 			lineNumber++
 		}
+		if isBlockEnd(lines[lineNumber]) {
+			lineNumber++
+		}
 
 		if lineNumber < len(lines) && isElseStmt(lines[lineNumber]) {
-			stmt, _, err := getElseStmt(lines[lineNumber])
+			stmt, _, err = getElseStmt(lines[lineNumber])
 			if err != nil {
 				return err
 			}
 
 			return handleStmt(stmt)
+		} else if lineNumber < len(lines) {
+			lineNumber--
 		}
 	}
 	return nil
