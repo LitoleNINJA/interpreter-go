@@ -1,4 +1,3 @@
-{
-    var foo = "world";
-    print foo;
-}
+var stage = "unknown";
+if (true) { stage = "adult"; }
+print stage;

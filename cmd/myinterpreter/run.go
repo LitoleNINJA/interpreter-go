@@ -112,7 +112,7 @@ func getVarDeclaration(stmt []byte) error {
 	}
 	key := strings.TrimSpace(stmtString[:pos])
 
-	// fmt.Printf("Key : %s, Value : %s\n", key, val)
+	fmt.Printf("Key : %s, Value : %s\n", key, val)
 	currentScope.setScopeValue(key, val)
 
 	return nil
@@ -130,14 +130,58 @@ func isBlockEnd(stmt []byte) bool {
 	return stmtString == "}"
 }
 
+func isIfStmt(stmt []byte) bool {
+	stmtString := string(stmt)
+	return strings.HasPrefix(stmtString, "if ")
+}
+
+func getIfStmt(stmt []byte) ([]byte, []byte, error) {
+	// fmt.Printf("Stmt : %s\n", stmt)
+	s, ok := strings.CutPrefix(string(stmt), "if ")
+	if !ok {
+		return []byte{}, []byte{}, fmt.Errorf("If stmt dosent start with if : %s\n", stmt)
+	}
+
+	// Find closing parenthesis
+	closeParenIndex := strings.Index(s, ")")
+	if closeParenIndex == -1 {
+		return []byte{}, []byte{}, fmt.Errorf(") not found in if stmt : %s\n", stmt)
+	}
+
+	condition := strings.TrimSpace(s[1:closeParenIndex])
+	body := strings.TrimSpace(s[closeParenIndex+1:])
+	if strings.HasPrefix(body, "{") {
+		restOfBody := strings.TrimSpace(strings.TrimPrefix(body, "{"))
+		body = "{"
+		lines = append(lines[:lineNumber+1], append([][]byte{[]byte(restOfBody)}, lines[lineNumber+1:]...)...)
+	}
+
+	return []byte(condition), []byte(body), nil
+}
+
+func isAssignment(stmt []byte) bool {
+	stmtString := string(stmt)
+
+	if !strings.Contains(stmtString, "=") {
+		return false
+	}
+	if strings.Contains(stmtString, "==") || 
+	   strings.Contains(stmtString, ">=") || 
+	   strings.Contains(stmtString, "<=") ||
+	   strings.Contains(stmtString, "!=") {
+		return false
+	}
+	return true
+}
+
 func checkBracketBalanced(lines [][]byte) error {
 	openingBracket := 0
 	closingBracket := 0
 
 	for _, stmt := range lines {
-		if isBlockStart(stmt) {
+		if strings.Contains(string(stmt), "{") {
 			openingBracket++
-		} else if isBlockEnd(stmt) {
+		} else if strings.Contains(string(stmt), "}") {
 			closingBracket++
 		}
 	}
@@ -197,9 +241,39 @@ func handleStmt(stmt []byte) error {
 		}
 
 		return nil
+	} else if isIfStmt(stmt) {
+		condition, stmt, err := getIfStmt(stmt)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Cond : %s, Stmt : %s\n", condition, stmt)
+		var expr Value
+		if isAssignment(condition) {
+			handleAssignment(string(condition))
+			expr = true
+		} else {
+			expr, err = evaluate(condition)
+			fmt.Println(expr)
+			if err != nil {
+				return err
+			}
+		}
+
+		if expr == true {
+			err := handleStmt(stmt)
+			if err != nil {
+				return err
+			}
+		} else {
+			for lineNumber < len(lines) && !isBlockEnd(lines[lineNumber]) {
+				lineNumber++
+			}
+		}
+		return nil
 	}
 
-	if strings.Contains(string(stmt), "=") {
+	if isAssignment(stmt) {
 		handleAssignment(string(stmt))
 	}
 
@@ -237,7 +311,7 @@ func handleAssignment(stmt string) (string, error) {
 			return val, err
 		}
 
-		// fmt.Printf("Key : %s, Value : %s\n", key, val)
+		fmt.Printf("Key : %s, Value : %s\n", key, val)
 		currentScope.setScopeValue(key, val)
 		return val, nil
 	} else {
