@@ -312,7 +312,12 @@ func handleAssignment(stmt string) (string, error) {
 		}
 
 		fmt.Printf("Key : %s, Value : %s\n", key, val)
-		currentScope.setScopeValue(key, val)
+		// Try to find and update existing variable
+		if success := currentScope.assignScopeValue(key, val); !success {
+			// If variable doesn't exist anywhere, define it in current scope
+			// fmt.Printf("Not found : %s, %s\n", key, val)
+			currentScope.setScopeValue(key, val)
+		}
 		return val, nil
 	} else {
 		val := strings.TrimSpace(stmt)
