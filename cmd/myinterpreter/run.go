@@ -401,7 +401,7 @@ func handleIfBlock(stmt []byte) error {
 			lineNumber++
 		}
 
-		if isElseStmt(lines[lineNumber]) {
+		if lineNumber < len(lines) && isElseStmt(lines[lineNumber]) {
 			stmt, _, err := getElseStmt(lines[lineNumber])
 			if err != nil {
 				return err
