@@ -112,7 +112,7 @@ func getVarDeclaration(stmt []byte) error {
 	}
 	key := strings.TrimSpace(stmtString[:pos])
 
-	fmt.Printf("Key : %s, Value : %s\n", key, val)
+	// fmt.Printf("Key : %s, Value : %s\n", key, val)
 	currentScope.setScopeValue(key, val)
 
 	return nil
@@ -247,14 +247,14 @@ func handleStmt(stmt []byte) error {
 			return err
 		}
 
-		fmt.Printf("Cond : %s, Stmt : %s\n", condition, stmt)
+		// fmt.Printf("Cond : %s, Stmt : %s\n", condition, stmt)
 		var expr Value
 		if isAssignment(condition) {
 			handleAssignment(string(condition))
 			expr = true
 		} else {
 			expr, err = evaluate(condition)
-			fmt.Println(expr)
+			// fmt.Println(expr)
 			if err != nil {
 				return err
 			}
@@ -302,7 +302,7 @@ func handleStmt(stmt []byte) error {
 func handleAssignment(stmt string) (string, error) {
 	stmt, _ = strings.CutSuffix(stmt, ";")
 
-	if strings.Contains(stmt, "=") {
+	if isAssignment([]byte(stmt)) {
 		pos := strings.Index(stmt, "=")
 
 		key := strings.TrimSpace(stmt[:pos])
@@ -311,17 +311,15 @@ func handleAssignment(stmt string) (string, error) {
 			return val, err
 		}
 
-		fmt.Printf("Key : %s, Value : %s\n", key, val)
+		// fmt.Printf("Key : %s, Value : %s\n", key, val)
 		// Try to find and update existing variable
 		if success := currentScope.assignScopeValue(key, val); !success {
-			// If variable doesn't exist anywhere, define it in current scope
-			// fmt.Printf("Not found : %s, %s\n", key, val)
 			currentScope.setScopeValue(key, val)
 		}
 		return val, nil
 	} else {
 		val := strings.TrimSpace(stmt)
-		if strings.ContainsAny(val, "+-*/()") {
+		if strings.ContainsAny(val, "+-*/()><") {
 			evalVal, err := evaluate([]byte(val))
 			if err != nil {
 				return val, err
