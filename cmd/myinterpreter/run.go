@@ -389,7 +389,7 @@ func handleIfBlock(stmt []byte) error {
 		for lineNumber < len(lines) && (!isElseStmt(lines[lineNumber]) && !isBlockEnd(lines[lineNumber])) {
 			lineNumber++
 		}
-		if isBlockEnd(lines[lineNumber]) {
+		if lineNumber < len(lines) && isBlockEnd(lines[lineNumber]) {
 			lineNumber++
 		}
 

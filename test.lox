@@ -1,7 +1,1 @@
-if (false) {
-  print "if block";
-} else print "else statement";
-
-if (false) print "if statement"; else {
-  print "else block";
-}
+if (false) print "quz"
