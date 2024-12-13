@@ -165,13 +165,31 @@ func isAssignment(stmt []byte) bool {
 	if !strings.Contains(stmtString, "=") {
 		return false
 	}
-	if strings.Contains(stmtString, "==") || 
-	   strings.Contains(stmtString, ">=") || 
-	   strings.Contains(stmtString, "<=") ||
-	   strings.Contains(stmtString, "!=") {
+	if strings.Contains(stmtString, "==") ||
+		strings.Contains(stmtString, ">=") ||
+		strings.Contains(stmtString, "<=") ||
+		strings.Contains(stmtString, "!=") {
 		return false
 	}
 	return true
+}
+
+func isElseStmt(stmt []byte) bool {
+	stmtString := string(stmt)
+	return strings.HasPrefix(stmtString, "else ") || strings.HasPrefix(stmtString, "} else")
+}
+
+func getElseStmt(stmt []byte) ([]byte, int, error) {
+	// fmt.Printf("stmt : %s\n", stmt)
+	if s, ok := strings.CutPrefix(string(stmt), "else "); ok {
+		return []byte(strings.TrimSpace(s)), 1, nil
+	}
+
+	if s, ok := strings.CutPrefix(string(stmt), "} else "); ok {
+		return []byte(strings.TrimSpace(s)), 2, nil
+	}
+
+	return []byte{}, -1, fmt.Errorf("else stmt not found")
 }
 
 func checkBracketBalanced(lines [][]byte) error {
@@ -181,7 +199,8 @@ func checkBracketBalanced(lines [][]byte) error {
 	for _, stmt := range lines {
 		if strings.Contains(string(stmt), "{") {
 			openingBracket++
-		} else if strings.Contains(string(stmt), "}") {
+		}
+		if strings.Contains(string(stmt), "}") {
 			closingBracket++
 		}
 	}
@@ -234,41 +253,28 @@ func handleStmt(stmt []byte) error {
 
 		return nil
 	} else if isBlockStart(stmt) {
-		err := handleBlock()
-		if err != nil {
-			exitCode = 65
+		isBlockEnd, err := handleBlock()
+		if err != nil{
 			return err
 		}
 
-		return nil
+		if !isBlockEnd {
+			stmt = lines[lineNumber]
+		} else {
+			return nil
+		}
 	} else if isIfStmt(stmt) {
-		condition, stmt, err := getIfStmt(stmt)
-		if err != nil {
-			return err
-		}
+		return handleIfBlock(stmt)
+	}
 
-		// fmt.Printf("Cond : %s, Stmt : %s\n", condition, stmt)
-		var expr Value
-		if isAssignment(condition) {
-			handleAssignment(string(condition))
-			expr = true
-		} else {
-			expr, err = evaluate(condition)
-			// fmt.Println(expr)
-			if err != nil {
-				return err
-			}
-		}
-
-		if expr == true {
-			err := handleStmt(stmt)
-			if err != nil {
-				return err
-			}
-		} else {
+	if isElseStmt(stmt) {
+		_, t, _ := getElseStmt(stmt)
+		if t == 2 {
 			for lineNumber < len(lines) && !isBlockEnd(lines[lineNumber]) {
+				// fmt.Printf("skipping else stmt : %s\n", lines[lineNumber])
 				lineNumber++
 			}
+			// fmt.Printf("stmt : %s\n", lines[lineNumber])
 		}
 		return nil
 	}
@@ -341,7 +347,7 @@ func handleAssignment(stmt string) (string, error) {
 	}
 }
 
-func handleBlock() error {
+func handleBlock() (bool, error) {
 	// push new scope
 	enclosingScope := currentScope
 	currentScope = NewScope(enclosingScope)
@@ -354,17 +360,55 @@ func handleBlock() error {
 
 		stmt := lines[lineNumber]
 
-		if isBlockEnd(stmt) {
+		if isBlockEnd(stmt) || isElseStmt(stmt) {
 			// pop scope
 			currentScope = enclosingScope
-			return nil
-		}
+			return !isElseStmt(stmt), nil
+		} 
 
 		err := handleStmt(stmt)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return false, fmt.Errorf("Error at end: Expect '}' .")
+}
+
+func handleIfBlock(stmt []byte) error {
+	condition, stmt, err := getIfStmt(stmt)
+	if err != nil {
+		return err
+	}
+
+	// fmt.Printf("Cond : %s, Stmt : %s\n", condition, stmt)
+	var expr Value
+	if isAssignment(condition) {
+		handleAssignment(string(condition))
+		expr = true
+	} else {
+		expr, err = evaluate(condition)
+		// fmt.Println(expr)
 		if err != nil {
 			return err
 		}
 	}
 
-	return fmt.Errorf("Error at end: Expect '}' .")
+	if expr == true {
+		return handleStmt(stmt)
+	} else {
+		for lineNumber < len(lines) && (!isElseStmt(lines[lineNumber]) && !isBlockEnd(lines[lineNumber])) {
+			lineNumber++
+		}
+
+		if isElseStmt(lines[lineNumber]) {
+			stmt, _, err := getElseStmt(lines[lineNumber])
+			if err != nil {
+				return err
+			}
+
+			return handleStmt(stmt)
+		}
+	}
+	return nil
 }
