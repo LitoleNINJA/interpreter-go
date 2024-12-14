@@ -181,12 +181,23 @@ func isElseStmt(stmt []byte) bool {
 
 func getElseStmt(stmt []byte) ([]byte, bool, error) {
 	// fmt.Printf("stmt : %s\n", stmt)
-	// TODO : instead of a new type, maybe end all lines after } is seen
 
 	if s, ok := strings.CutPrefix(string(stmt), "else "); ok {
-		return []byte(strings.TrimSpace(s)), strings.HasPrefix(s, "{"), nil
-	}
+		if strings.HasPrefix(s, "if ") {
+			_, body, err := getIfStmt([]byte(s))
+			if err != nil {
+				return []byte{}, false, err
+			}
 
+			return []byte(strings.TrimSpace(s)), string(body) == "{", nil
+		} else if strings.HasPrefix(s, "{") {
+			restOfBody := strings.TrimSpace(strings.TrimPrefix(s, "{"))
+			s = "{"
+			lines = append(lines[:lineNumber+1], append([][]byte{[]byte(restOfBody)}, lines[lineNumber+1:]...)...)
+			return []byte(s), true, nil
+		}
+		return []byte(strings.TrimSpace(s)), false, nil
+	}
 
 	return []byte{}, false, fmt.Errorf("else stmt not found")
 }
@@ -263,7 +274,6 @@ func handleStmt(stmt []byte) error {
 				// fmt.Printf("skipping else stmt : %s\n", lines[lineNumber])
 				lineNumber++
 			}
-			// fmt.Printf("stmt : %s\n", lines[lineNumber])
 		}
 		return nil
 	}
@@ -353,7 +363,7 @@ func handleBlock() error {
 			// pop scope
 			currentScope = enclosingScope
 			return nil
-		} 
+		}
 
 		err := handleStmt(stmt)
 		if err != nil {
@@ -397,6 +407,13 @@ func handleIfBlock(stmt []byte) error {
 			stmt, _, err = getElseStmt(lines[lineNumber])
 			if err != nil {
 				return err
+			}
+
+			if isIfStmt(stmt) {
+				// fmt.Printf("if stmt : %s\n", stmt)
+				lines = append(lines[:lineNumber+1], append([][]byte{stmt}, lines[lineNumber+1:]...)...)
+				lineNumber++
+				return handleIfBlock(stmt)
 			}
 
 			return handleStmt(stmt)
