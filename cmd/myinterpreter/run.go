@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"unicode"
 )
@@ -221,6 +223,31 @@ func checkBracketBalanced(lines [][]byte) error {
 	return nil
 }
 
+func findBlockEnd() {
+	cnt := 1
+	lineNumber++
+	for lineNumber < len(lines) {
+		if bytes.Contains(lines[lineNumber], []byte("{")) {
+			cnt++
+		} else if bytes.Contains(lines[lineNumber], []byte("}")) {
+			cnt--
+		}
+
+		if cnt == 0 {
+			return
+		}
+
+		lineNumber++
+	}
+	fmt.Fprintf(os.Stderr, "Error at end: Expect '}'")
+	os.Exit(69)
+}
+
+func isComment(stmt []byte) bool {
+	stmtString := string(stmt)
+	return strings.HasPrefix(stmtString, "//")
+}
+
 func run(fileContents []byte) error {
 	lineNumber = 0
 	lines = readLines(fileContents)
@@ -251,7 +278,9 @@ func run(fileContents []byte) error {
 func handleStmt(stmt []byte) error {
 	printStmt := false
 
-	if isPrintStmt(stmt) {
+	if isComment(stmt) {
+		return nil
+	} else if isPrintStmt(stmt) {
 		printStmt = true
 		stmt = getPrintContents(stmt)
 	} else if isVarDeclaration(stmt) {
@@ -396,12 +425,10 @@ func handleIfBlock(stmt []byte) error {
 	if expr == true {
 		return handleStmt(stmt)
 	} else {
-		for lineNumber < len(lines) && (!isElseStmt(lines[lineNumber]) && !isBlockEnd(lines[lineNumber])) {
-			lineNumber++
-		}
-		if lineNumber < len(lines) && isBlockEnd(lines[lineNumber]) {
-			lineNumber++
-		}
+		if bytes.Equal(stmt, []byte("{")) {
+			findBlockEnd()
+		} 
+		lineNumber++
 
 		if lineNumber < len(lines) && isElseStmt(lines[lineNumber]) {
 			stmt, _, err = getElseStmt(lines[lineNumber])
@@ -409,6 +436,7 @@ func handleIfBlock(stmt []byte) error {
 				return err
 			}
 
+			// check for else if
 			if isIfStmt(stmt) {
 				// fmt.Printf("if stmt : %s\n", stmt)
 				lines = append(lines[:lineNumber+1], append([][]byte{stmt}, lines[lineNumber+1:]...)...)
