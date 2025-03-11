@@ -27,6 +27,7 @@ const (
 	CommentStatement
 	EmptyStatement
 	ComplexStatement
+	WhileStatement
 )
 
 type Statement struct {
@@ -54,6 +55,8 @@ func DetermineStatementType(stmt []byte) StatementType {
 		return IfStatement
 	} else if strings.HasPrefix(stmtString, "else ") || strings.HasPrefix(stmtString, "} else") {
 		return ElseStatement
+	} else if strings.HasPrefix(stmtString, "while ") {
+		return WhileStatement
 	} else if isAssignment(stmt) {
 		return AssignmentStatement
 	}
@@ -226,6 +229,30 @@ func getElseStmt(stmt []byte) ([]byte, bool, error) {
 	return []byte{}, false, fmt.Errorf("else stmt not found")
 }
 
+// getWhileStmt extracts the condition and body from a while statement
+func getWhileStmt(stmt []byte) ([]byte, []byte, error) {
+	s, ok := strings.CutPrefix(string(stmt), "while ")
+	if !ok {
+		return []byte{}, []byte{}, fmt.Errorf("While stmt dosent start with while : %s\n", stmt)
+	}
+
+	// Find closing parenthesis
+	closeParenIndex := strings.Index(s, ")")
+	if closeParenIndex == -1 {
+		return []byte{}, []byte{}, fmt.Errorf(") not found in while stmt : %s\n", stmt)
+	}
+
+	condition := strings.TrimSpace(s[1:closeParenIndex])
+	body := strings.TrimSpace(s[closeParenIndex+1:])
+	if strings.HasPrefix(body, "{") {
+		restOfBody := strings.TrimSpace(strings.TrimPrefix(body, "{"))
+		body = "{"
+		lines = append(lines[:lineNumber+1], append([][]byte{[]byte(restOfBody)}, lines[lineNumber+1:]...)...)
+	}
+
+	return []byte(condition), []byte(body), nil
+}
+
 func isBlockEnd(stmt []byte) bool {
 	return DetermineStatementType(stmt) == BlockEndStatement
 }
@@ -279,16 +306,13 @@ func handleStmt(stmt []byte) error {
 		printStmt = true
 		stmt = getPrintContents(stmt)
 	} else if stmtType == VarDeclarationStatement {
-		err := getVarDeclaration(stmt)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return getVarDeclaration(stmt)
 	} else if stmtType == BlockStartStatement {
 		return handleBlock()
 	} else if stmtType == IfStatement {
 		return handleIfBlock(stmt)
+	} else if stmtType == WhileStatement {
+		return handleWhileBlock(stmt)
 	}
 
 	if stmtType == ElseStatement {
@@ -410,15 +434,9 @@ func handleIfBlock(stmt []byte) error {
 	}
 
 	// Evaluate condition
-	var conditionResult Value
-	if isAssignment(condition) {
-		handleAssignment(string(condition))
-		conditionResult = true
-	} else {
-		conditionResult, err = evaluate(condition)
-		if err != nil {
-			return err
-		}
+	conditionResult, err := evaluateCondition(condition)
+	if err != nil {
+		return err
 	}
 
 	// Handle if/else logic
@@ -427,7 +445,7 @@ func handleIfBlock(stmt []byte) error {
 	} else {
 		// If condition is false, skip the if block
 		if bytes.Equal(body, []byte("{")) {
-			findBlockEnd()
+			lineNumber, _ = findBlockEnd()
 		}
 		lineNumber++
 
@@ -473,8 +491,6 @@ func handleComplexStmt(stmt []byte) error {
 }
 
 // handleComplexOrStmt processes a complex OR expression with short-circuit evaluation.
-// It evaluates each part of the expression separated by 'or' from left to right,
-// and returns immediately if any part evaluates to a truthy value.
 func handleComplexOrStmt(stmt []byte) error {
 	parts := strings.Split(string(stmt), "or")
 
@@ -529,6 +545,7 @@ func handleComplexOrStmt(stmt []byte) error {
 	return nil
 }
 
+// handleComplexAndStmt processes a complex AND expression with short-circuit evaluation.
 func handleComplexAndStmt(stmt []byte) error {
 	parts := strings.Split(string(stmt), "and")
 
@@ -580,5 +597,69 @@ func handleComplexAndStmt(stmt []byte) error {
 		}
 
 	}
+	return nil
+}
+
+func handleWhileBlock(stmt []byte) error {
+	condition, stmt, err := getWhileStmt(stmt)
+	if err != nil {
+		return err
+	}
+
+	// fmt.Printf("While Condition : %s, Stmt : %s\n", condition, stmt)
+
+	conditionResult, err := evaluateCondition(condition)
+	if err != nil {
+		return err
+	}
+
+	// check for block while
+	blockEndLineNumber := lineNumber
+	if bytes.Equal(stmt, []byte("{")) {
+		blockEndLineNumber, err = findBlockEnd()
+		if err != nil {
+			return err
+		}
+	} else {
+		// it is a single line while statement
+		for isTruthy(conditionResult) {
+			err := handleStmt(stmt)
+			if err != nil {
+				return err
+			}
+
+			conditionResult, err = evaluateCondition(condition)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	blockSize := blockEndLineNumber - lineNumber
+	// evaluate stmts till while block ends
+	for isTruthy(conditionResult) {
+		// skip to next line as this stmt = "{"
+		lineNumber++
+		for lineNumber < blockEndLineNumber {
+			err := handleStmt(lines[lineNumber])
+			if err != nil {
+				return err
+			}
+
+			lineNumber++
+		}
+		// skip back to while start
+		lineNumber -= blockSize
+
+		conditionResult, err = evaluateCondition(condition)
+		if err != nil {
+			return err
+		}
+	}
+
+	lineNumber = blockEndLineNumber
+
 	return nil
 }

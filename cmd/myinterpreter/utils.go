@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -29,24 +28,25 @@ func checkBracketBalanced(lines [][]byte) error {
 }
 
 // findBlockEnd finds the end of a block of code enclosed in curly braces
-func findBlockEnd() {
+func findBlockEnd() (int, error) {
 	cnt := 1
-	lineNumber++
-	for lineNumber < len(lines) {
-		if bytes.Contains(lines[lineNumber], []byte("{")) {
+	blockEndLineNumber := lineNumber + 1
+
+	for blockEndLineNumber < len(lines) {
+		if bytes.Contains(lines[blockEndLineNumber], []byte("{")) {
 			cnt++
-		} else if bytes.Contains(lines[lineNumber], []byte("}")) {
+		} else if bytes.Contains(lines[blockEndLineNumber], []byte("}")) {
 			cnt--
 		}
 
 		if cnt == 0 {
-			return
+			return blockEndLineNumber, nil
 		}
 
-		lineNumber++
+		blockEndLineNumber++
 	}
-	fmt.Fprintf(os.Stderr, "Error at end: Expect '}'")
-	os.Exit(69)
+
+	return -1, fmt.Errorf("Error at end: Expect '}'")
 }
 
 // mapComplexStmt replaces nested parenthesized expressions with placeholders.
@@ -93,6 +93,7 @@ func mapComplexStmt(stmt []byte) ([]byte, map[int]string) {
 	return []byte(simpleStmt), mapStmt
 }
 
+// isTruthy checks if a value is truthy
 func isTruthy(val Value) bool {
 	switch val := val.(type) {
 	case bool:
@@ -115,4 +116,21 @@ func isTruthy(val Value) bool {
 		fmt.Println("Unknown type !")
 		return false
 	}
+}
+
+// evaluateCondition evaluates a condition and returns the result
+func evaluateCondition(condition []byte) (Value, error) {
+	var conditionResult Value
+	if isAssignment(condition) {
+		handleAssignment(string(condition))
+		conditionResult = true
+	} else {
+		var err error
+		conditionResult, err = evaluate(condition)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return conditionResult, nil
 }
