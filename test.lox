@@ -1,5 +1,4 @@
-// This program uses nested if statements to print a message
-if (true) {
-  if (false) print "quz"; 
-  else print "quz";
-}
+(51 + 43 - 96) > (28 - 51) * 2;
+print !true;
+"hello" + "quz" + "bar" + "world" == "helloquzbarworld";
+print !true;

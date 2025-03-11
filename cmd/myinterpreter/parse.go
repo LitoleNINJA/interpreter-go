@@ -73,7 +73,7 @@ func equality(parser *Parser) (Expr, error) {
 func comparison(parser *Parser) (Expr, error) {
 	expr, err := term(parser)
 
-	for parser.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
+	for parser.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, OR) {
 		operator := parser.previous()
 		right, err := term(parser)
 		if err != nil {
@@ -171,6 +171,10 @@ func primary(parser *Parser) (Expr, error) {
 		}, nil
 	} else if parser.match(LEFT_PAREN) {
 		expr, err := expression(parser)
+		if err != nil {
+			return &Grouping{}, err
+		}
+
 		consume(parser, RIGHT_PAREN, "Expect ')' after expression.")
 		return &Grouping{
 			expression: expr,

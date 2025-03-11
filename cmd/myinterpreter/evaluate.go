@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-type Value interface{}
+type Value any
 
 func (l *Literal) Evaluate() (Value, error) {
 	if l.t == "bool" {
@@ -115,6 +115,14 @@ func (b *Binary) Evaluate() (Value, error) {
 		return checkEqual(leftVal, rightVal), nil
 	case BANG_EQUAL:
 		return !checkEqual(leftVal, rightVal), nil
+	case OR:
+		if isTruthy(leftVal) {
+			return leftVal, nil
+		} else if isTruthy(rightVal) {
+			return rightVal, nil
+		} else {
+			return false, nil
+		}
 	default:
 		return nil, fmt.Errorf("unknown operator : %s", b.operator.literal)
 	}
@@ -148,8 +156,7 @@ func isTruthy(val Value) bool {
 			return false
 		}
 
-		fmt.Println("Should not reach here !")
-		return false
+		return true
 	case float64:
 		return val != 0
 	default:

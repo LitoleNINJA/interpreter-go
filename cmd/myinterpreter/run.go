@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"os"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -12,7 +12,56 @@ var lines [][]byte
 var lineNumber int
 var isString bool
 var currentScope *Scope
+var mappedStmts map[int]string
 
+type StatementType int
+
+const (
+	PrintStatement StatementType = iota
+	VarDeclarationStatement
+	AssignmentStatement
+	BlockStartStatement
+	BlockEndStatement
+	IfStatement
+	ElseStatement
+	CommentStatement
+	EmptyStatement
+	ComplexStatement
+)
+
+type Statement struct {
+	Type StatementType
+	Stmt []byte
+}
+
+// DetermineStatementType determines the type of a statement
+func DetermineStatementType(stmt []byte) StatementType {
+	stmtString := string(stmt)
+
+	if strings.HasPrefix(stmtString, "//") {
+		return CommentStatement
+	} else if strings.HasPrefix(stmtString, "(") {
+		return ComplexStatement
+	} else if strings.HasPrefix(stmtString, "print") {
+		return PrintStatement
+	} else if strings.HasPrefix(stmtString, "var ") {
+		return VarDeclarationStatement
+	} else if strings.TrimSpace(stmtString) == "{" {
+		return BlockStartStatement
+	} else if strings.TrimSpace(stmtString) == "}" {
+		return BlockEndStatement
+	} else if strings.HasPrefix(stmtString, "if ") {
+		return IfStatement
+	} else if strings.HasPrefix(stmtString, "else ") || strings.HasPrefix(stmtString, "} else") {
+		return ElseStatement
+	} else if isAssignment(stmt) {
+		return AssignmentStatement
+	}
+
+	return -1 // Unknown statement type
+}
+
+// readLines reads the file content and splits it into stmt lines
 func readLines(fileContent []byte) [][]byte {
 	var lines [][]byte
 	line := make([]byte, 0)
@@ -70,6 +119,23 @@ func readLines(fileContent []byte) [][]byte {
 	return lines
 }
 
+// isAssignment checks if a statement is an assignment statement
+func isAssignment(stmt []byte) bool {
+	stmtString := string(stmt)
+
+	if !strings.Contains(stmtString, "=") {
+		return false
+	}
+	if strings.Contains(stmtString, "==") ||
+		strings.Contains(stmtString, ">=") ||
+		strings.Contains(stmtString, "<=") ||
+		strings.Contains(stmtString, "!=") {
+		return false
+	}
+	return true
+}
+
+// getPrintContents extracts the content to be printed from a print statement
 func getPrintContents(line []byte) []byte {
 	s, ok := strings.CutPrefix(string(line), "print")
 	if !ok {
@@ -85,16 +151,7 @@ func getPrintContents(line []byte) []byte {
 	return []byte(s)
 }
 
-func isPrintStmt(stmt []byte) bool {
-	stmtString := string(stmt)
-	return strings.HasPrefix(stmtString, "print")
-}
-
-func isVarDeclaration(stmt []byte) bool {
-	stmtString := string(stmt)
-	return strings.HasPrefix(stmtString, "var ")
-}
-
+// getVarDeclaration extracts the key and value from a var declaration statement
 func getVarDeclaration(stmt []byte) error {
 	stmtString := string(stmt)
 	stmtString, _ = strings.CutPrefix(stmtString, "var ")
@@ -120,23 +177,7 @@ func getVarDeclaration(stmt []byte) error {
 	return nil
 }
 
-func isBlockStart(stmt []byte) bool {
-	stmtString := strings.TrimSpace(string(stmt))
-
-	return stmtString == "{"
-}
-
-func isBlockEnd(stmt []byte) bool {
-	stmtString := strings.TrimSpace(string(stmt))
-
-	return stmtString == "}"
-}
-
-func isIfStmt(stmt []byte) bool {
-	stmtString := string(stmt)
-	return strings.HasPrefix(stmtString, "if ")
-}
-
+// getIfStmt extracts the condition and body from an if statement
 func getIfStmt(stmt []byte) ([]byte, []byte, error) {
 	// fmt.Printf("Stmt : %s\n", stmt)
 	s, ok := strings.CutPrefix(string(stmt), "if ")
@@ -161,26 +202,7 @@ func getIfStmt(stmt []byte) ([]byte, []byte, error) {
 	return []byte(condition), []byte(body), nil
 }
 
-func isAssignment(stmt []byte) bool {
-	stmtString := string(stmt)
-
-	if !strings.Contains(stmtString, "=") {
-		return false
-	}
-	if strings.Contains(stmtString, "==") ||
-		strings.Contains(stmtString, ">=") ||
-		strings.Contains(stmtString, "<=") ||
-		strings.Contains(stmtString, "!=") {
-		return false
-	}
-	return true
-}
-
-func isElseStmt(stmt []byte) bool {
-	stmtString := string(stmt)
-	return strings.HasPrefix(stmtString, "else ") || strings.HasPrefix(stmtString, "} else")
-}
-
+// getElseStmt extracts the else statement, similar to getIfStmt
 func getElseStmt(stmt []byte) ([]byte, bool, error) {
 	// fmt.Printf("stmt : %s\n", stmt)
 
@@ -204,50 +226,19 @@ func getElseStmt(stmt []byte) ([]byte, bool, error) {
 	return []byte{}, false, fmt.Errorf("else stmt not found")
 }
 
-func checkBracketBalanced(lines [][]byte) error {
-	openingBracket := 0
-	closingBracket := 0
-
-	for _, stmt := range lines {
-		if strings.Contains(string(stmt), "{") {
-			openingBracket++
-		}
-		if strings.Contains(string(stmt), "}") {
-			closingBracket++
-		}
-	}
-
-	if openingBracket != closingBracket {
-		return fmt.Errorf("Error at end: Expect '}'")
-	}
-	return nil
+func isBlockEnd(stmt []byte) bool {
+	return DetermineStatementType(stmt) == BlockEndStatement
 }
 
-func findBlockEnd() {
-	cnt := 1
-	lineNumber++
-	for lineNumber < len(lines) {
-		if bytes.Contains(lines[lineNumber], []byte("{")) {
-			cnt++
-		} else if bytes.Contains(lines[lineNumber], []byte("}")) {
-			cnt--
-		}
-
-		if cnt == 0 {
-			return
-		}
-
-		lineNumber++
-	}
-	fmt.Fprintf(os.Stderr, "Error at end: Expect '}'")
-	os.Exit(69)
+func isIfStmt(stmt []byte) bool {
+	return DetermineStatementType(stmt) == IfStatement
 }
 
-func isComment(stmt []byte) bool {
-	stmtString := string(stmt)
-	return strings.HasPrefix(stmtString, "//")
+func isElseStmt(stmt []byte) bool {
+	return DetermineStatementType(stmt) == ElseStatement
 }
 
+// main entry point of the interpreter
 func run(fileContents []byte) error {
 	lineNumber = 0
 	lines = readLines(fileContents)
@@ -275,28 +266,32 @@ func run(fileContents []byte) error {
 	return nil
 }
 
+// handleStmt processes a statement and executes it accordingly
 func handleStmt(stmt []byte) error {
 	printStmt := false
+	stmtType := DetermineStatementType(stmt)
 
-	if isComment(stmt) {
+	if stmtType == CommentStatement {
 		return nil
-	} else if isPrintStmt(stmt) {
+	} else if stmtType == ComplexStatement {
+		return handleComplexStmt(stmt)
+	} else if stmtType == PrintStatement {
 		printStmt = true
 		stmt = getPrintContents(stmt)
-	} else if isVarDeclaration(stmt) {
+	} else if stmtType == VarDeclarationStatement {
 		err := getVarDeclaration(stmt)
 		if err != nil {
 			return err
 		}
 
 		return nil
-	} else if isBlockStart(stmt) {
+	} else if stmtType == BlockStartStatement {
 		return handleBlock()
-	} else if isIfStmt(stmt) {
+	} else if stmtType == IfStatement {
 		return handleIfBlock(stmt)
 	}
 
-	if isElseStmt(stmt) {
+	if stmtType == ElseStatement {
 		_, t, _ := getElseStmt(stmt)
 		if t {
 			for lineNumber < len(lines) && !isBlockEnd(lines[lineNumber]) {
@@ -333,6 +328,7 @@ func handleStmt(stmt []byte) error {
 	return nil
 }
 
+// handleAssignment processes an assignment statement and assigns the value to a variable
 func handleAssignment(stmt string) (string, error) {
 	stmt, _ = strings.CutSuffix(stmt, ";")
 
@@ -375,6 +371,9 @@ func handleAssignment(stmt string) (string, error) {
 	}
 }
 
+// handleBlock processes a block of code enclosed in curly braces {}.
+// It creates a new scope for the block, executes all statements within the block,
+// and restores the enclosing scope when the block ends.
 func handleBlock() error {
 	// push new scope
 	enclosingScope := currentScope
@@ -403,51 +402,127 @@ func handleBlock() error {
 	return fmt.Errorf("Error at end: Expect '}' .")
 }
 
+// handleIfBlock processes an if statement including its condition and body.
 func handleIfBlock(stmt []byte) error {
-	condition, stmt, err := getIfStmt(stmt)
+	condition, body, err := getIfStmt(stmt)
 	if err != nil {
 		return err
 	}
 
-	// fmt.Printf("Cond : %s, Stmt : %s\n", condition, stmt)
-	var expr Value
+	// Evaluate condition
+	var conditionResult Value
 	if isAssignment(condition) {
 		handleAssignment(string(condition))
-		expr = true
+		conditionResult = true
 	} else {
-		expr, err = evaluate(condition)
-		// fmt.Println(expr)
+		conditionResult, err = evaluate(condition)
 		if err != nil {
 			return err
 		}
 	}
 
-	if expr == true {
-		return handleStmt(stmt)
+	// Handle if/else logic
+	if isTruthy(conditionResult) {
+		return handleStmt(body)
 	} else {
-		if bytes.Equal(stmt, []byte("{")) {
+		// If condition is false, skip the if block
+		if bytes.Equal(body, []byte("{")) {
 			findBlockEnd()
-		} 
+		}
 		lineNumber++
 
+		// Check for else or else if statement
 		if lineNumber < len(lines) && isElseStmt(lines[lineNumber]) {
-			stmt, _, err = getElseStmt(lines[lineNumber])
+			elseBody, _, err := getElseStmt(lines[lineNumber])
 			if err != nil {
 				return err
 			}
 
-			// check for else if
-			if isIfStmt(stmt) {
-				// fmt.Printf("if stmt : %s\n", stmt)
-				lines = append(lines[:lineNumber+1], append([][]byte{stmt}, lines[lineNumber+1:]...)...)
+			// Handle else if block
+			if isIfStmt(elseBody) {
+				lines = append(lines[:lineNumber+1], append([][]byte{elseBody}, lines[lineNumber+1:]...)...)
 				lineNumber++
-				return handleIfBlock(stmt)
+				return handleIfBlock(elseBody)
 			}
 
-			return handleStmt(stmt)
+			// Handle regular else block
+			return handleStmt(elseBody)
 		} else if lineNumber < len(lines) {
 			lineNumber--
 		}
+	}
+	return nil
+}
+
+// handleComplexStmt processes complex statements that contain nested parentheses.
+// It maps nested expressions to simple placeholders and processes them accordingly.
+func handleComplexStmt(stmt []byte) error {
+	var simpleStmt []byte
+	simpleStmt, mappedStmts = mapComplexStmt(stmt)
+	// fmt.Printf("Mapped : %v\nStmt : %s\n", mappedStmts, simpleStmt)
+
+	if strings.Contains(string(simpleStmt), "or") {
+		return handleComplexOrStmt(simpleStmt)
+	} 
+
+	_, err := evaluate(stmt)
+
+	return err
+}
+
+// handleComplexOrStmt processes a complex OR expression with short-circuit evaluation.
+// It evaluates each part of the expression separated by 'or' from left to right,
+// and returns immediately if any part evaluates to a truthy value.
+func handleComplexOrStmt(stmt []byte) error {
+	parts := strings.Split(string(stmt), "or")
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+
+		if strings.HasPrefix(part, "%map") {
+			mapKey, err := strconv.Atoi(part[4:])
+			if err != nil {
+				return err
+			}
+
+			mapVal, ok := mappedStmts[mapKey]
+			if !ok {
+				return fmt.Errorf("key %d not found in mappedStmts", mapKey)
+			}
+
+			if isAssignment([]byte(mapVal)) {
+				result, err := handleAssignment(mapVal)
+				if err != nil {
+					return err
+				}
+
+				// If this result is truthy, we can short-circuit
+				if isTruthy(result) {
+					return nil
+				}
+			} else {
+				// Evaluate as a normal expression
+				result, err := evaluate([]byte(mapVal))
+				if err != nil {
+					return err
+				}
+
+				// If this result is truthy, we can short-circuit
+				if isTruthy(result) {
+					return nil
+				}
+			}
+		} else {
+			result, err := evaluate([]byte(part))
+			if err != nil {
+				return err
+			}
+
+			if isTruthy(result) {
+				return nil
+			}
+		}
+
 	}
 	return nil
 }
