@@ -129,12 +129,8 @@ func (b *Binary) Evaluate() (Value, error) {
 		} else if !isTruthy(rightVal) {
 			return rightVal, nil
 		} else {
-			// if both are true, return the value that is not boolean
-			if _, ok := leftVal.(bool); ok {
-				return rightVal, nil
-			} else {
-				return leftVal, nil
-			}
+			// if both are true, return the last value
+			return rightVal, nil
 		}
 	default:
 		return nil, fmt.Errorf("unknown operator : %s", b.operator.literal)
