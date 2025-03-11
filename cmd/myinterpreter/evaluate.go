@@ -123,6 +123,19 @@ func (b *Binary) Evaluate() (Value, error) {
 		} else {
 			return false, nil
 		}
+	case AND:
+		if !isTruthy(leftVal) {
+			return leftVal, nil
+		} else if !isTruthy(rightVal) {
+			return rightVal, nil
+		} else {
+			// if both are true, return the value that is not boolean
+			if _, ok := leftVal.(bool); ok {
+				return rightVal, nil
+			} else {
+				return leftVal, nil
+			}
+		}
 	default:
 		return nil, fmt.Errorf("unknown operator : %s", b.operator.literal)
 	}
@@ -139,30 +152,6 @@ func evaluate(fileContents []byte) (Value, error) {
 	}
 
 	return expr.Evaluate()
-}
-
-func isTruthy(val Value) bool {
-	switch val := val.(type) {
-	case bool:
-		return val
-	case string:
-		if b, err := strconv.ParseBool(val); err == nil {
-			return b
-		}
-		if f, err := strconv.ParseFloat(val, 64); err == nil {
-			return f != 0
-		}
-		if val == "nil" {
-			return false
-		}
-
-		return true
-	case float64:
-		return val != 0
-	default:
-		fmt.Println("Unknown type !")
-		return false
-	}
 }
 
 func add(left Value, right Value) (Value, error) {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -90,4 +91,28 @@ func mapComplexStmt(stmt []byte) ([]byte, map[int]string) {
 	}
 
 	return []byte(simpleStmt), mapStmt
+}
+
+func isTruthy(val Value) bool {
+	switch val := val.(type) {
+	case bool:
+		return val
+	case string:
+		if b, err := strconv.ParseBool(val); err == nil {
+			return b
+		}
+		if f, err := strconv.ParseFloat(val, 64); err == nil {
+			return f != 0
+		}
+		if val == "nil" {
+			return false
+		}
+
+		return true
+	case float64:
+		return val != 0
+	default:
+		fmt.Println("Unknown type !")
+		return false
+	}
 }

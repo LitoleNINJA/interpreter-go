@@ -463,7 +463,9 @@ func handleComplexStmt(stmt []byte) error {
 
 	if strings.Contains(string(simpleStmt), "or") {
 		return handleComplexOrStmt(simpleStmt)
-	} 
+	} else if strings.Contains(string(simpleStmt), "and") {
+		return handleComplexAndStmt(simpleStmt)
+	}
 
 	_, err := evaluate(stmt)
 
@@ -519,6 +521,60 @@ func handleComplexOrStmt(stmt []byte) error {
 			}
 
 			if isTruthy(result) {
+				return nil
+			}
+		}
+
+	}
+	return nil
+}
+
+func handleComplexAndStmt(stmt []byte) error {
+	parts := strings.Split(string(stmt), "and")
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+
+		if strings.HasPrefix(part, "%map") {
+			mapKey, err := strconv.Atoi(part[4:])
+			if err != nil {
+				return err
+			}
+
+			mapVal, ok := mappedStmts[mapKey]
+			if !ok {
+				return fmt.Errorf("key %d not found in mappedStmts", mapKey)
+			}
+
+			if isAssignment([]byte(mapVal)) {
+				result, err := handleAssignment(mapVal)
+				if err != nil {
+					return err
+				}
+
+				// If this result is falsy, we can short-circuit
+				if !isTruthy(result) {
+					return nil
+				}
+			} else {
+				// Evaluate as a normal expression
+				result, err := evaluate([]byte(mapVal))
+				if err != nil {
+					return err
+				}
+
+				// If this result is falsy, we can short-circuit
+				if !isTruthy(result) {
+					return nil
+				}
+			}
+		} else {
+			result, err := evaluate([]byte(part))
+			if err != nil {
+				return err
+			}
+
+			if !isTruthy(result) {
 				return nil
 			}
 		}

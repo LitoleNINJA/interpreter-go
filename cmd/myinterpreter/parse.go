@@ -73,7 +73,7 @@ func equality(parser *Parser) (Expr, error) {
 func comparison(parser *Parser) (Expr, error) {
 	expr, err := term(parser)
 
-	for parser.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, OR) {
+	for parser.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, OR, AND) {
 		operator := parser.previous()
 		right, err := term(parser)
 		if err != nil {

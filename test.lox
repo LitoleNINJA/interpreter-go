@@ -1,4 +1,2 @@
-(51 + 43 - 96) > (28 - 51) * 2;
-print !true;
-"hello" + "quz" + "bar" + "world" == "helloquzbarworld";
-print !true;
+print true and 1;
+print 23 and "hello" and 23;
