@@ -141,7 +141,7 @@ func main() {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "[line %d] %v\n", lineNumber, err)
 			if exitCode == 0 {
-				exitCode = 70
+				exitCode = 65
 			}
 			os.Exit(exitCode)
 		}

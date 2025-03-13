@@ -58,10 +58,12 @@ func (b *Binary) Evaluate() (Value, error) {
 		var left, right float64
 		left, ok := leftVal.(float64)
 		if !ok {
+			exitCode = 70
 			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		right, ok = rightVal.(float64)
 		if !ok {
+			exitCode = 70
 			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		return left - right, nil
@@ -69,10 +71,12 @@ func (b *Binary) Evaluate() (Value, error) {
 		var left, right float64
 		left, ok := leftVal.(float64)
 		if !ok {
+			exitCode = 70
 			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		right, ok = rightVal.(float64)
 		if !ok {
+			exitCode = 70
 			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		return left * right, nil
@@ -80,10 +84,12 @@ func (b *Binary) Evaluate() (Value, error) {
 		var left, right float64
 		left, ok := leftVal.(float64)
 		if !ok {
+			exitCode = 70
 			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		right, ok = rightVal.(float64)
 		if !ok {
+			exitCode = 70
 			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		}
 		return left / right, nil
@@ -155,6 +161,7 @@ func add(left Value, right Value) (Value, error) {
 	case float64:
 		leftVal := left.(float64)
 		if rightVal, ok := right.(float64); !ok {
+			exitCode = 70
 			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		} else {
 			return leftVal + rightVal, nil
@@ -162,11 +169,13 @@ func add(left Value, right Value) (Value, error) {
 	case string:
 		leftVal := left.(string)
 		if rightVal, ok := right.(string); !ok {
+			exitCode = 70
 			return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 		} else {
 			return leftVal + rightVal, nil
 		}
 	default:
+		exitCode = 70
 		return nil, fmt.Errorf("operands must be numbers.\n[line 1]")
 	}
 }
@@ -201,11 +210,13 @@ func checkBothNumber(leftVal Value, rightVal Value) error {
 	switch leftVal.(type) {
 	case float64:
 		if _, ok := rightVal.(float64); !ok {
+			exitCode = 70
 			return fmt.Errorf("operands must be numbers.\n[line 1]")
 		} else {
 			return nil
 		}
 	default:
+		exitCode = 70
 		return fmt.Errorf("operands must be numbers.\n[line 1]")
 	}
 }
