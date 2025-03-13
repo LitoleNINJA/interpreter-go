@@ -134,3 +134,42 @@ func evaluateCondition(condition []byte) (Value, error) {
 
 	return conditionResult, nil
 }
+
+func extractCondition(stmt []byte, prefix string) ([]byte, []byte, error) {
+	// fmt.Printf("Stmt : %s\n", stmt)
+	s, ok := strings.CutPrefix(string(stmt), prefix)
+	if !ok {
+		return []byte{}, []byte{}, fmt.Errorf("stmt should start with %s: %s", prefix, stmt)
+	}
+
+	// Find closing parenthesis
+	closeParenIndex := strings.Index(s, ")")
+	if closeParenIndex == -1 {
+		return []byte{}, []byte{}, fmt.Errorf(") not found in %s stmt : %s", prefix, stmt)
+	}
+
+	condition := strings.TrimSpace(s[1:closeParenIndex])
+	body := strings.TrimSpace(s[closeParenIndex+1:])
+	if strings.HasPrefix(body, "{") {
+		restOfBody := strings.TrimSpace(strings.TrimPrefix(body, "{"))
+		body = "{"
+		lines = append(lines[:lineNumber+1], append([][]byte{[]byte(restOfBody)}, lines[lineNumber+1:]...)...)
+	}
+
+	return []byte(condition), []byte(body), nil
+}
+
+func parseForStmt(stmt []byte) ([]byte, []byte, []byte, error) {
+	parts := strings.Split(string(stmt), ";")
+
+	if len(parts) != 3 {
+		return []byte{}, []byte{}, []byte{}, fmt.Errorf("Invalid for stmt : %s", stmt)
+	}
+
+	// trim space for all parts
+	for i := 0; i < len(parts); i++ {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+
+	return []byte(parts[0]), []byte(parts[1]), []byte(parts[2]), nil
+}

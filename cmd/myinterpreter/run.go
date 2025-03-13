@@ -28,6 +28,7 @@ const (
 	EmptyStatement
 	ComplexStatement
 	WhileStatement
+	ForStatement
 )
 
 type Statement struct {
@@ -57,6 +58,8 @@ func DetermineStatementType(stmt []byte) StatementType {
 		return ElseStatement
 	} else if strings.HasPrefix(stmtString, "while ") {
 		return WhileStatement
+	} else if strings.HasPrefix(stmtString, "for ") {
+		return ForStatement
 	} else if isAssignment(stmt) {
 		return AssignmentStatement
 	}
@@ -68,8 +71,16 @@ func DetermineStatementType(stmt []byte) StatementType {
 func readLines(fileContent []byte) [][]byte {
 	var lines [][]byte
 	line := make([]byte, 0)
+	cnt := 0
+
 	for i := 0; i < len(fileContent); i++ {
 		ch := fileContent[i]
+
+		if ch == ')' {
+			cnt++
+		} else if ch == '(' {
+			cnt--
+		}
 
 		if ch == '"' {
 			isString = !isString
@@ -81,7 +92,7 @@ func readLines(fileContent []byte) [][]byte {
 			continue
 		}
 
-		if ch == ';' || ch == '}' {
+		if (ch == ';' && cnt == 0) || ch == '}' {
 			line = append(line, ch)
 			trimmed := []byte(strings.TrimSpace(string(line)))
 			if len(trimmed) > 0 {
@@ -180,38 +191,13 @@ func getVarDeclaration(stmt []byte) error {
 	return nil
 }
 
-// getIfStmt extracts the condition and body from an if statement
-func getIfStmt(stmt []byte) ([]byte, []byte, error) {
-	// fmt.Printf("Stmt : %s\n", stmt)
-	s, ok := strings.CutPrefix(string(stmt), "if ")
-	if !ok {
-		return []byte{}, []byte{}, fmt.Errorf("If stmt dosent start with if : %s\n", stmt)
-	}
-
-	// Find closing parenthesis
-	closeParenIndex := strings.Index(s, ")")
-	if closeParenIndex == -1 {
-		return []byte{}, []byte{}, fmt.Errorf(") not found in if stmt : %s\n", stmt)
-	}
-
-	condition := strings.TrimSpace(s[1:closeParenIndex])
-	body := strings.TrimSpace(s[closeParenIndex+1:])
-	if strings.HasPrefix(body, "{") {
-		restOfBody := strings.TrimSpace(strings.TrimPrefix(body, "{"))
-		body = "{"
-		lines = append(lines[:lineNumber+1], append([][]byte{[]byte(restOfBody)}, lines[lineNumber+1:]...)...)
-	}
-
-	return []byte(condition), []byte(body), nil
-}
-
 // getElseStmt extracts the else statement, similar to getIfStmt
 func getElseStmt(stmt []byte) ([]byte, bool, error) {
 	// fmt.Printf("stmt : %s\n", stmt)
 
 	if s, ok := strings.CutPrefix(string(stmt), "else "); ok {
 		if strings.HasPrefix(s, "if ") {
-			_, body, err := getIfStmt([]byte(s))
+			_, body, err := extractCondition([]byte(s), "if ")
 			if err != nil {
 				return []byte{}, false, err
 			}
@@ -227,30 +213,6 @@ func getElseStmt(stmt []byte) ([]byte, bool, error) {
 	}
 
 	return []byte{}, false, fmt.Errorf("else stmt not found")
-}
-
-// getWhileStmt extracts the condition and body from a while statement
-func getWhileStmt(stmt []byte) ([]byte, []byte, error) {
-	s, ok := strings.CutPrefix(string(stmt), "while ")
-	if !ok {
-		return []byte{}, []byte{}, fmt.Errorf("While stmt dosent start with while : %s\n", stmt)
-	}
-
-	// Find closing parenthesis
-	closeParenIndex := strings.Index(s, ")")
-	if closeParenIndex == -1 {
-		return []byte{}, []byte{}, fmt.Errorf(") not found in while stmt : %s\n", stmt)
-	}
-
-	condition := strings.TrimSpace(s[1:closeParenIndex])
-	body := strings.TrimSpace(s[closeParenIndex+1:])
-	if strings.HasPrefix(body, "{") {
-		restOfBody := strings.TrimSpace(strings.TrimPrefix(body, "{"))
-		body = "{"
-		lines = append(lines[:lineNumber+1], append([][]byte{[]byte(restOfBody)}, lines[lineNumber+1:]...)...)
-	}
-
-	return []byte(condition), []byte(body), nil
 }
 
 func isBlockEnd(stmt []byte) bool {
@@ -313,6 +275,8 @@ func handleStmt(stmt []byte) error {
 		return handleIfBlock(stmt)
 	} else if stmtType == WhileStatement {
 		return handleWhileBlock(stmt)
+	} else if stmtType == ForStatement {
+		return handleForBlock(stmt)
 	}
 
 	if stmtType == ElseStatement {
@@ -352,7 +316,7 @@ func handleStmt(stmt []byte) error {
 	return nil
 }
 
-// handleAssignment processes an assignment statement and assigns the value to a variable
+// handleAssignment processes an assignment statement and assigns the value to a variable, and returns the assigned value
 func handleAssignment(stmt string) (string, error) {
 	stmt, _ = strings.CutSuffix(stmt, ";")
 
@@ -428,7 +392,7 @@ func handleBlock() error {
 
 // handleIfBlock processes an if statement including its condition and body.
 func handleIfBlock(stmt []byte) error {
-	condition, body, err := getIfStmt(stmt)
+	condition, body, err := extractCondition(stmt, "if ")
 	if err != nil {
 		return err
 	}
@@ -601,7 +565,7 @@ func handleComplexAndStmt(stmt []byte) error {
 }
 
 func handleWhileBlock(stmt []byte) error {
-	condition, stmt, err := getWhileStmt(stmt)
+	condition, stmt, err := extractCondition(stmt, "while ")
 	if err != nil {
 		return err
 	}
@@ -614,7 +578,7 @@ func handleWhileBlock(stmt []byte) error {
 	}
 
 	// check for block while
-	blockEndLineNumber := lineNumber
+	blockEndLineNumber := 0
 	if bytes.Equal(stmt, []byte("{")) {
 		blockEndLineNumber, err = findBlockEnd()
 		if err != nil {
@@ -640,18 +604,93 @@ func handleWhileBlock(stmt []byte) error {
 	blockSize := blockEndLineNumber - lineNumber
 	// evaluate stmts till while block ends
 	for isTruthy(conditionResult) {
-		// skip to next line as this stmt = "{"
-		lineNumber++
-		for lineNumber < blockEndLineNumber {
-			err := handleStmt(lines[lineNumber])
+		// process the for block
+		err = handleBlock()
+		if err != nil {
+			return err
+		}
+
+		// skip back to while start
+		lineNumber -= blockSize
+
+		conditionResult, err = evaluateCondition(condition)
+		if err != nil {
+			return err
+		}
+	}
+
+	lineNumber = blockEndLineNumber
+
+	return nil
+}
+
+func handleForBlock(stmt []byte) error {
+	body, stmt, err := extractCondition(stmt, "for ")
+	if err != nil {
+		return err
+	}
+
+	// fmt.Printf("For Condition : %s, Stmt : %s\n", body, stmt)
+	init, condition, updation, err := parseForStmt(body)
+	if err != nil {
+		return err
+	}
+
+	err = handleStmt(init)
+	if err != nil {
+		return err
+	}
+
+	conditionResult, err := evaluateCondition(condition)
+	if err != nil {
+		return err
+	}
+
+	// check for block for
+	blockEndLineNumber := 0
+	if bytes.Equal(stmt, []byte("{")) {
+		blockEndLineNumber, err = findBlockEnd()
+		if err != nil {
+			return err
+		}
+	} else {
+		// it is a single line for statement
+		for isTruthy(conditionResult) {
+			err := handleStmt(stmt)
 			if err != nil {
 				return err
 			}
 
-			lineNumber++
+			err = handleStmt(updation)
+			if err != nil {
+				return err
+			}
+
+			conditionResult, err = evaluateCondition(condition)
+			if err != nil {
+				return err
+			}
 		}
-		// skip back to while start
+
+		return nil
+	}
+
+	blockSize := blockEndLineNumber - lineNumber
+	// evaluate stmts till for block ends
+	for isTruthy(conditionResult) {
+		// process the for block
+		err = handleBlock()
+		if err != nil {
+			return err
+		}
+
+		// skip back to for start
 		lineNumber -= blockSize
+
+		err = handleStmt(updation)
+		if err != nil {
+			return err
+		}
 
 		conditionResult, err = evaluateCondition(condition)
 		if err != nil {
