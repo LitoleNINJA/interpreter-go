@@ -2,53 +2,32 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"strings"
 )
 
-type Expr interface {
-	String() string
-	Evaluate() (Value, error)
-}
-
-type Literal struct {
-	value string
-	t     string
-}
-
-func (l Literal) String() string {
-	return l.value
-}
-
-type Unary struct {
-	operator Token
-	right    Expr
-}
-
-func (u Unary) String() string {
-	return fmt.Sprintf("(%s %s)", u.operator.lexeme, u.right)
-}
-
-type Binary struct {
-	left     Expr
-	operator Token
-	right    Expr
-}
-
-func (b Binary) String() string {
-	return fmt.Sprintf("(%s %s %s)", b.operator.lexeme, b.left, b.right)
-}
-
-type Grouping struct {
-	expression Expr
-}
-
-func (g Grouping) String() string {
-	return fmt.Sprintf("(group %s)", g.expression)
-}
-
 func expression(parser *Parser) (Expr, error) {
-	return equality(parser)
+	return assignment(parser)
+}
+
+func assignment(parser *Parser) (Expr, error) {
+	expr, err := equality(parser)
+
+	for parser.match(EQUAL) {
+		value, err := expression(parser)
+		if err != nil {
+			return nil, err
+		}
+
+		if varExpr, ok := expr.(*Variable); ok {
+			return &Assignment{
+				name:  varExpr.name,
+				value: value,
+			}, nil
+		} else {
+			return nil, fmt.Errorf("Invalid assignment target")
+		}
+	}
+
+	return expr, err
 }
 
 func equality(parser *Parser) (Expr, error) {
@@ -140,7 +119,44 @@ func unary(parser *Parser) (Expr, error) {
 		}, err
 	}
 
-	return primary(parser)
+	return call(parser)
+}
+
+func call(parser *Parser) (Expr, error) {
+	expr, err := primary(parser)
+	if err != nil {
+		return nil, err
+	}
+
+	for parser.match(LEFT_PAREN) {
+		expr, err = finishCall(parser, expr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return expr, nil
+}
+
+// finishCall parses the arguments of a function call
+func finishCall(parser *Parser, callee Expr) (Expr, error) {
+	args := make([]Expr, 0)
+
+	for !parser.check(RIGHT_PAREN) {
+		expr, err := expression(parser)
+		if err != nil {
+			return nil, err
+		}
+
+		args = append(args, expr)
+	}
+
+	consume(parser, RIGHT_PAREN, "Expect ')' after arguments.")
+
+	return &Call{
+		callee: callee,
+		args:   args,
+	}, nil
 }
 
 func primary(parser *Parser) (Expr, error) {
@@ -180,35 +196,13 @@ func primary(parser *Parser) (Expr, error) {
 			expression: expr,
 		}, err
 	} else if parser.match(IDENTIFIER) {
-		if val, ok := currentScope.getScopeValue(parser.previous().lexeme); !ok {
-			exitCode = 70
-			return &Literal{}, fmt.Errorf("Undefined variable '%s'.", parser.previous().lexeme)
-		} else {
-			if strings.ContainsAny(val, "+-*/") {
-				value, err := evaluate([]byte(val))
-				if err != nil {
-					return &Literal{}, err
-				}
-
-				val = fmt.Sprint(value)
-			}
-			valType := getStringType(val)
-			// fmt.Printf("value : %s, type : %s\n", val, valType)
-			return &Literal{
-				value: val,
-				t:     valType,
-			}, nil
-		}
+		return &Variable{
+			name: parser.previous(),
+		}, nil
 	}
 
-	return &Grouping{}, fmt.Errorf("Error at ')': Expect expression")
-}
-
-func consume(parser *Parser, tokenType string, msg string) {
-	if !parser.match(tokenType) {
-		fmt.Fprintf(os.Stderr, "ERROR : %s\n", msg)
-		os.Exit(65)
-	}
+	exitCode = 65
+	return nil, fmt.Errorf("Error at ')': Expect expression")
 }
 
 func parseFile(fileContent []byte) (Expr, error) {
@@ -217,8 +211,6 @@ func parseFile(fileContent []byte) (Expr, error) {
 		current: 0,
 	}
 
-	// fmt.Println("Tokens : ", parser.tokens)
-	expr, err := parser.parse()
-
+	expr, err := expression(parser)
 	return expr, err
 }

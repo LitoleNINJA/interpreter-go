@@ -1,22 +1,24 @@
 package main
 
 type Scope struct {
-	values    map[string]string
+	values    map[string]any
 	enclosing *Scope
 }
 
 func NewScope(enclosing *Scope) *Scope {
 	return &Scope{
-		values:    make(map[string]string),
+		values:    make(map[string]any),
 		enclosing: enclosing,
 	}
 }
 
-func (scope *Scope) setScopeValue(key string, val string) {
+func (scope *Scope) setScopeValue(key string, val any) {
 	scope.values[key] = val
 }
 
-func (scope *Scope) getScopeValue(key string) (string, bool) {
+// getScopeValue returns the value of the key
+// in this environment or its enclosing environments
+func (scope *Scope) getScopeValue(key string) (any, bool) {
 	// check for nil scope
 	if scope == nil {
 		return "", false
@@ -32,14 +34,18 @@ func (scope *Scope) getScopeValue(key string) (string, bool) {
 		return scope.enclosing.getScopeValue(key)
 	}
 
-	return "", false
+	return nil, false
 }
 
-func (scope *Scope) assignScopeValue(key string, val string) bool {
+// assignScopeValue sets a key-value pair in the environment if the key already exists.
+// If it doesn't exist in this environment, it checks the enclosing environment
+// and tries to assign the value there
+func (scope *Scope) assignScopeValue(key string, val any) bool {
 	// check if key exists in current scope
-	if _, ok := scope.getScopeValue(key); ok {
-		// fmt.Printf("%s found in scope %+v\n", key, scope)
+	if _, ok := scope.values[key]; ok {
+		// if found, assign new value
 		scope.setScopeValue(key, val)
+		return true
 	}
 
 	// if not found, check enclosing
