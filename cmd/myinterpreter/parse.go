@@ -149,6 +149,9 @@ func finishCall(parser *Parser, callee Expr) (Expr, error) {
 		}
 
 		args = append(args, expr)
+		if !parser.match(COMMA) {
+			break
+		}
 	}
 
 	consume(parser, RIGHT_PAREN, "Expect ')' after arguments.")

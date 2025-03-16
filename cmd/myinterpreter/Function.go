@@ -18,9 +18,9 @@ func (fn *Function) Call(args []Value) (Value, error) {
 		currentScope = previousScope
 	}()
 
-	// Set the arguments in the scope
-	for _, arg := range fn.stmt.args {
-		currentScope.setScopeValue(arg.lexeme, arg)
+	// Set the arguments in the new scope
+	for i, arg := range fn.stmt.args {
+		currentScope.setScopeValue(arg.lexeme, args[i])
 	}
 
 	for _, stmt := range fn.stmt.body {
