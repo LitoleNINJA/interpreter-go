@@ -39,6 +39,12 @@ type Call struct {
 	args   []Expr
 }
 
+type Func struct {
+	name Token
+	args []Token
+	body []Statement
+}
+
 type Grouping struct {
 	expression Expr
 }
@@ -255,6 +261,23 @@ func (c Call) Evaluate() (Value, error) {
 	}
 
 	return function.Call(argsVals)
+}
+
+func (f Func) String() string {
+	return fmt.Sprintf("(fn %s %s)", f.name.lexeme, f.args)
+}
+
+func (f Func) Evaluate() (Value, error) {
+	fn := &FunctionExpr{
+		expr: f, 
+		scope: NewScope(currentScope),
+	}
+
+	if f.name.lexeme != "" {
+		fn.scope.setScopeValue(f.name.lexeme, fn)
+	}
+
+	return fn, nil
 }
 
 func (g Grouping) String() string {

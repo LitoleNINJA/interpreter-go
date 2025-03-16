@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Statement interface {
 	String() string
@@ -14,6 +16,7 @@ type Statement interface {
 - Block statement
 - If statement
 - While statement (includes for statement)
+- Func statement
 */
 
 type ExprStatement struct {
@@ -30,8 +33,6 @@ func (e *ExprStatement) Execute() (Value, error) {
 		return nil, err
 	}
 
-	// expr should end with ';'
-	// if
 	return val, nil
 }
 
@@ -164,5 +165,25 @@ func (w *WhileStatement) Execute() (Value, error) {
 		}
 	}
 
+	return nil, nil
+}
+
+type FuncStatement struct {
+	name Token
+	args []Token
+	body []Statement
+}
+
+func (f *FuncStatement) String() string {
+	return fmt.Sprintf("fn %s(%v) %s", f.name.lexeme, f.args, f.body)
+}
+
+func (f *FuncStatement) Execute() (Value, error) {
+	fn := &Function{
+		stmt:  *f,
+		scope: currentScope,
+	}
+
+	currentScope.setScopeValue(f.name.lexeme, fn)
 	return nil, nil
 }

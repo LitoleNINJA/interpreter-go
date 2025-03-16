@@ -31,6 +31,9 @@ func (parser *Parser) parse() ([]Statement, error) {
 func (parser *Parser) declaration() (Statement, error) {
 	if parser.match(VAR) {
 		return parser.varDeclaration()
+	} 
+	if parser.match(FUN) {
+		return parser.funcDeclaration()
 	}
 
 	return parser.statement()
@@ -75,6 +78,30 @@ func (parser *Parser) varDeclaration() (Statement, error) {
 		name: name,
 		init: initializer,
 	}, nil
+}
+
+func (parser *Parser) funcDeclaration() (Statement, error) {
+	name := consume(parser, "IDENTIFIER", "Expect function name")
+	consume(parser, LEFT_PAREN, "Expect '(' after function name")
+
+	var args []Token
+	for !parser.check(RIGHT_PAREN) {
+		args = append(args, consume(parser, "IDENTIFIER", "Expect parameter name"))
+		if !parser.match(COMMA) {
+			break
+		}
+	}
+
+	consume(parser, RIGHT_PAREN, "Expect ')' after function parameters")
+	consume(parser, LEFT_BRACE, "Expect '{' before function body")
+	
+	body, err := parser.blockStatement()
+
+	return &FuncStatement{
+		name: name,
+		args: args,
+		body: body,
+	}, err
 }
 
 // printStatement parses print statements

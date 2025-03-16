@@ -1,9 +1,6 @@
 package main
 
-var currentScope *Scope
-
 func run(fileContents []byte) error {
-	currentScope = NewScope(nil)
 	init_native_functions()
 
 	parser := &Parser{

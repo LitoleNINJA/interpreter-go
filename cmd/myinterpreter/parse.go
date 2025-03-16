@@ -199,10 +199,52 @@ func primary(parser *Parser) (Expr, error) {
 		return &Variable{
 			name: parser.previous(),
 		}, nil
+	} else if parser.match(FUN) {
+		return functionalExpression(parser)
 	}
 
 	exitCode = 65
 	return nil, fmt.Errorf("Error at ')': Expect expression")
+}
+
+func functionalExpression(parser *Parser) (Expr, error) {
+	var name Token 
+	if !parser.check(LEFT_PAREN) {
+		name = consume(parser, IDENTIFIER, "Expect function name")
+	}
+
+	args, err := argsList(parser)
+	if err != nil {
+		return nil, err
+	}
+
+	consume(parser, LEFT_BRACE, "Expect '{' before function body")
+	body, err := parser.blockStatement()
+
+	return &Func{
+		name: name,
+		args: args,
+		body: body,
+	}, err
+}
+
+func argsList(parser *Parser) ([]Token, error) {
+	consume(parser, LEFT_PAREN, "Expect '(' after function name")
+
+	args := make([]Token, 0)
+	for !parser.check(RIGHT_PAREN) {
+		if len(args) > max_args_count {
+			return nil, fmt.Errorf("cannot have more than 128 arguments")
+		}
+
+		args = append(args, consume(parser, IDENTIFIER, "Expect parameter name"))
+		if !parser.match(COMMA) {
+			break
+		}
+	}
+
+	consume(parser, RIGHT_PAREN, "Expect ')' after function parameters")
+	return args, nil
 }
 
 func parseFile(fileContent []byte) (Expr, error) {
