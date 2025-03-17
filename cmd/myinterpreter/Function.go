@@ -2,6 +2,15 @@ package main
 
 import "fmt"
 
+type Callable interface {
+	Arity() int
+	Call(args []Value) (Value, error)
+}
+
+type Return struct {
+	val Value
+}
+
 type Function struct {
 	stmt  FuncStatement
 	scope *Scope
@@ -9,6 +18,10 @@ type Function struct {
 
 func (fn *Function) String() string {
 	return fmt.Sprintf("<fn %s>", fn.stmt.name.lexeme)
+}
+
+func (fn *Function) Arity() int {
+	return len(fn.stmt.args)
 }
 
 func (fn *Function) Call(args []Value) (returnVal Value, err error) {
@@ -49,6 +62,10 @@ func (fn *FunctionExpr) String() string {
 	return fmt.Sprintf("(fn %s %s)", fn.expr.name.lexeme, fn.expr.args)
 }
 
+func (fn *FunctionExpr) Arity() int {
+	return len(fn.expr.args)
+}
+
 func (fn *FunctionExpr) Call(args []Value) (Value, error) {
 	previousScope := currentScope
 	currentScope = NewScope(fn.scope)
@@ -68,8 +85,4 @@ func (fn *FunctionExpr) Call(args []Value) (Value, error) {
 	}
 
 	return nil, nil
-}
-
-type Return struct {
-	val Value
 }

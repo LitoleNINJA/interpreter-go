@@ -12,6 +12,11 @@ type BuiltinFunction struct {
 
 var native_functions map[string]*BuiltinFunction
 
+// Implement Arity
+func (bf *BuiltinFunction) Arity() int {
+	return 0
+}
+
 // Implement the Callable interface
 func (bf *BuiltinFunction) Call(args []Value) (Value, error) {
 	return bf.function(args)

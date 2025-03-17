@@ -10,10 +10,6 @@ type Expr interface {
 	Evaluate() (Value, error)
 }
 
-type Callable interface {
-	Call(args []Value) (Value, error)
-}
-
 type Literal struct {
 	value string
 	t     string
@@ -257,7 +253,11 @@ func (c Call) Evaluate() (Value, error) {
 
 	function, ok := calleeVal.(Callable)
 	if !ok {
-		return nil, fmt.Errorf("can only call functions")
+		return nil, fmt.Errorf("Can only call functions and classes.")
+	}
+
+	if len(argsVals) != function.Arity() {
+		return nil, fmt.Errorf("Expected %d arguments but got %d.", function.Arity(), len(argsVals))
 	}
 
 	return function.Call(argsVals)
