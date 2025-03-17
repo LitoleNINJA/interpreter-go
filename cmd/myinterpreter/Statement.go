@@ -17,6 +17,7 @@ type Statement interface {
 - If statement
 - While statement (includes for statement)
 - Func statement
+- Return statement
 */
 
 type ExprStatement struct {
@@ -186,4 +187,25 @@ func (f *FuncStatement) Execute() (Value, error) {
 
 	currentScope.setScopeValue(f.name.lexeme, fn)
 	return nil, nil
+}
+
+type ReturnStatement struct {
+	value Expr
+}
+
+func (r *ReturnStatement) String() string {
+	return fmt.Sprintf("return %s", r.value)
+}
+
+func (r *ReturnStatement) Execute() (Value, error) {
+	if r.value == nil {
+		panic(&Return{nil})
+	}
+	
+	val, err := r.value.Evaluate()
+	if err != nil {
+		return nil, err
+	}
+
+	panic(&Return{val})
 }

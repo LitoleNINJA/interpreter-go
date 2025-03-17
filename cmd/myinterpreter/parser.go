@@ -59,6 +59,9 @@ func (parser *Parser) statement() (Statement, error) {
 	if parser.match(FOR) {
 		return parser.forStatement()
 	}
+	if parser.match(RETURN) {
+		return parser.returnStatement()
+	}
 
 	return parser.expressionStatement()
 }
@@ -255,6 +258,18 @@ func (parser *Parser) blockStatement() ([]Statement, error) {
 	}
 	consume(parser, RIGHT_BRACE, "Expect '}' after block")
 	return stmts, nil
+}
+
+func (parser *Parser) returnStatement() (Statement, error) {
+	var expr Expr
+	if !parser.check(SEMICOLON) {
+		expr, _ = expression(parser)
+	}
+	consume(parser, SEMICOLON, "Expect ';' after return value")
+	
+	return &ReturnStatement{
+		value: expr,
+	}, nil
 }
 
 // match checks if the current token matches any of the given types and advances if true

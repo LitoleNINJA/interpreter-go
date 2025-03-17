@@ -11,11 +11,18 @@ func (fn *Function) String() string {
 	return fmt.Sprintf("<fn %s>", fn.stmt.name.lexeme)
 }
 
-func (fn *Function) Call(args []Value) (Value, error) {
+func (fn *Function) Call(args []Value) (returnVal Value, err error) {
 	previousScope := currentScope
 	currentScope = NewScope(fn.scope)
 	defer func() {
 		currentScope = previousScope
+		if err := recover(); err != nil {
+			if ret, ok := err.(*Return); ok {
+				returnVal = ret.val
+				return
+			}
+			panic(err)
+		}
 	}()
 
 	// Set the arguments in the new scope
@@ -24,7 +31,7 @@ func (fn *Function) Call(args []Value) (Value, error) {
 	}
 
 	for _, stmt := range fn.stmt.body {
-		_, err := stmt.Execute()
+		_, err = stmt.Execute()
 		if err != nil {
 			return nil, err
 		}
@@ -61,4 +68,8 @@ func (fn *FunctionExpr) Call(args []Value) (Value, error) {
 	}
 
 	return nil, nil
+}
+
+type Return struct {
+	val Value
 }
