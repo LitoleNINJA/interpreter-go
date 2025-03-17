@@ -9,7 +9,7 @@ func expression(parser *Parser) (Expr, error) {
 }
 
 func assignment(parser *Parser) (Expr, error) {
-	expr, err := equality(parser)
+	expr, err := logical(parser)
 
 	for parser.match(EQUAL) {
 		value, err := expression(parser)
@@ -29,6 +29,25 @@ func assignment(parser *Parser) (Expr, error) {
 
 	return expr, err
 }
+
+func logical(parser *Parser) (Expr, error) {
+	expr, err := equality(parser)
+
+	for parser.match(AND, OR) {
+		operator := parser.previous()
+		right, err := equality(parser)
+		if err != nil {
+			return nil, err
+		}
+		expr = &Binary{
+			left:     expr,
+			operator: operator,
+			right:    right,
+		}
+	}
+
+	return expr, err
+}	 
 
 func equality(parser *Parser) (Expr, error) {
 	expr, err := comparison(parser)
@@ -52,7 +71,7 @@ func equality(parser *Parser) (Expr, error) {
 func comparison(parser *Parser) (Expr, error) {
 	expr, err := term(parser)
 
-	for parser.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, OR, AND) {
+	for parser.match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
 		operator := parser.previous()
 		right, err := term(parser)
 		if err != nil {
